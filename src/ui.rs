@@ -9,8 +9,8 @@ use std::{
 use chrono::{DateTime, Datelike, Local, Utc};
 use gpui::{
     AnyElement, App, Context, Div, Entity, FocusHandle, Focusable, KeyDownEvent, Keystroke,
-    ScrollHandle, SharedString, Stateful, Subscription, Svg, Task, Timer, Window, div, prelude::*,
-    px, rgb, rgba, svg,
+    ScrollHandle, SharedString, Stateful, Subscription, Svg, Task, Timer, Window, div, img,
+    prelude::*, px, rgb, rgba, svg,
 };
 
 use crate::{
@@ -699,11 +699,11 @@ impl Workspace {
                 .border_r_1()
                 .child(
                     div()
+                        .flex()
+                        .items_center()
                         .px_3()
                         .py_4()
-                        .text_lg()
-                        .text_color(rgb(palette(cx).accent))
-                        .child("GoSipTea"),
+                        .child(img("logo/gosiptea-icon.svg").size(px(32.))),
                 );
         }
         navigation

@@ -40,13 +40,19 @@ const ICONS: [(&str, &[u8]); 9] = [
     ),
 ];
 
-/// Icons are compiled in, so the binary needs no files at runtime.
+const LOGOS: [(&str, &[u8]); 1] = [(
+    "logo/gosiptea-icon.svg",
+    include_bytes!("../assets/logo/gosiptea-icon.svg"),
+)];
+
+/// Images are compiled in, so the binary needs no files at runtime.
 pub struct Assets;
 
 impl AssetSource for Assets {
     fn load(&self, path: &str) -> Result<Option<Cow<'static, [u8]>>> {
         Ok(ICONS
             .iter()
+            .chain(LOGOS.iter())
             .find(|(name, _)| *name == path)
             .map(|(_, bytes)| Cow::Borrowed(*bytes)))
     }
@@ -54,6 +60,7 @@ impl AssetSource for Assets {
     fn list(&self, path: &str) -> Result<Vec<SharedString>> {
         Ok(ICONS
             .iter()
+            .chain(LOGOS.iter())
             .filter(|(name, _)| name.starts_with(path))
             .map(|(name, _)| SharedString::from(*name))
             .collect())
