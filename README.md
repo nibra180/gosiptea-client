@@ -40,16 +40,17 @@ Nur für die Entwicklung: `cargo build --locked` erzeugt den unoptimierten Build
 
 Die fünf Ansichten, ihre Reihenfolge und die Statuszeile entsprechen der TUI. Deren Buchstaben-Kürzel gibt es hier nicht, die Buttons tragen deshalb keine Tastenhinweise. Breite Fenster zeigen eine Seitenleiste, schmale Fenster eine obere Navigationszeile. GPUI verwendet Entities, Actions, Fokus und Subscriptions wie Zed; hinzugefügte Editor-, Dock- oder Telefoniefunktionen gibt es nicht.
 
-Das einzige Tastenkürzel ist der Ansichtswechsel: `1` bis `5` öffnen Phone, Contacts, Audio, Account und History. Alles andere läuft über die Maus.
+Die Ansicht wechselt per Klick in der Navigation oder per Tastatur. `Ctrl+1` bis `Ctrl+5` öffnen Phone, Contacts, Audio, Account und History, `Ctrl+Tab` und `Ctrl+Shift+Tab` blättern vor und zurück. Die Kürzel funktionieren auch in Textfeldern. Weitere Kürzel gibt es nicht, alles andere läuft über die Maus. Nur in der Phone-Ansicht wirkt die Tastatur ohne vorherigen Klick. Ohne Anruf landet jede Eingabe im Dial-Feld, im Gespräch gehen Ziffern an das offene Keypad.
 
-- Phone: „Dial“ wählt die eingegebene Nummer. Ist das Feld leer, setzt der Button den Cursor hinein. Answer, Reject, Hang up, Mute und DND sind Buttons.
+- Phone: Das Dial-Feld hat beim Öffnen den Fokus, man kann also sofort tippen. Auch nach Esc landet die nächste Taste wieder im Feld. Darunter liegt ein Wähltastenfeld wie in der Android-Telefon-App. Der grüne Button wählt die Nummer. Ist das Feld leer, setzt er den Cursor hinein. Links davon schaltet DND um, rechts löscht Backspace das letzte Zeichen.
+- Anrufbildschirm: Geht ein Anruf ein oder beginnt ein ausgehender, wechselt die App auf Phone. Der Aufbau folgt der Android-Telefon-App. Oben stehen Status, Initialen, Name und Nummer, unten die runden Buttons. Ein eingehender Anruf hat „Decline“ links und „Answer“ rechts. Im Gespräch gibt es Mute, Keypad, Hold, DND und Auflegen. Das Keypad sendet jede Ziffer sofort als DTMF. Das gilt für angeklickte Tasten und, solange das Keypad offen ist, auch für Ziffern, `*` und `#` von der Tastatur. Andere Tasten haben im Gespräch keine Wirkung. Während Hold sind Mute und Keypad gesperrt. In den anderen Ansichten führt ein Banner über dem Inhalt zurück zum Gespräch.
 - Contacts: Ein Klick wählt einen Eintrag aus, „Dial“ ruft ihn an, „Remove“ entfernt ihn, „Add“ öffnet das Formular.
 - Audio: Ein Klick auf einen Eintrag übernimmt das Gerät. Ein Klick auf den Regler setzt die Lautstärke in 5-%-Schritten.
 - Account: In die Felder klicken, „TLS and SRTP“ umschalten, mit „Save account“ speichern. Ein leeres Passwort behält das gespeicherte.
 - History: Ein Klick wählt einen Anruf aus, „Dial“ ruft erneut an.
 - Beenden geht über das Schließen des Fensters. Während eines Gesprächs fragt die App vorher nach.
 
-In Textfeldern gelten die üblichen Eingabetasten. Enter wählt im Dial-Feld und speichert im Adressfeld eines neuen Kontakts, Tab springt zum nächsten Feld, Esc verlässt das Feld. Während der Eingabe wechseln die Ziffern nicht die Ansicht.
+In Textfeldern gelten die üblichen Eingabetasten. Enter wählt im Dial-Feld und speichert im Adressfeld eines neuen Kontakts, Tab springt zum nächsten Feld, Esc verlässt das Feld.
 
 ## Architektur
 
@@ -59,6 +60,7 @@ In Textfeldern gelten die üblichen Eingabetasten. Enter wählt im Dial-Feld und
 - `src/session.rs`: ein Worker serialisiert Aktionen und Ereignisse. Die Oberfläche bekommt kopierte Snapshots ohne gespeichertes Passwort.
 - `src/ui.rs`: GPUI-Workspace mit Seitenleiste, Inhaltsbereich, Statuszeile und Beenden-Dialog.
 - `src/input.rs`: begrenzte Unicode-Eingabe mit IME, Auswahl, Zwischenablage und Passwortmaskierung.
+- `src/assets.rs`: ins Binary eingebettete Icons für den Anrufbildschirm.
 
 Der Umfang bleibt auf ein Konto und ein gleichzeitiges Gespräch begrenzt. Ein abweichender Klingelausgang wird wie im Original erst nach einem Neustart wirksam. Der Verlauf enthält maximal 200 Versuche in `gosiptea-call-history.json`. Eingehende Anrufe pausieren MPRIS-Player, benachrichtigen den Desktop und fokussieren das Fenster. Globale Tastenkürzel und Benachrichtigungsaktionen bleiben ausgeschlossen.
 
@@ -81,5 +83,6 @@ Ein echter Verbindungsaufbau mit SIP-Server, Gegenstelle und Audio bleibt ein ma
 - Ursprüngliches GoSipTea, unverändert im benachbarten Projekt.
 - [Zed](https://github.com/zed-industries/zed), insbesondere Workspace-Aufbau und GPUI-Entity-Modell.
 - [GPUI](https://gpui.rs/) und das Eingabebeispiel der Version 0.2.2.
+- [Material Symbols](https://github.com/google/material-design-icons) für die Icons des Anrufbildschirms.
 
-Die MIT-Lizenz des Ursprungsprojekts steht in `LICENSE`. `src/input.rs` enthält den Herkunftshinweis und die Apache-2.0-Lizenz des verwendeten GPUI-Beispiels.
+Die MIT-Lizenz des Ursprungsprojekts steht in `LICENSE`. `src/input.rs` enthält den Herkunftshinweis und die Apache-2.0-Lizenz des verwendeten GPUI-Beispiels. Die Icons unter `assets/icons` stehen ebenfalls unter Apache 2.0, die Lizenz liegt in `assets/icons/LICENSE`.

@@ -1,4 +1,5 @@
 use crate::domain::{self, CallDirection, CallOutcome, HistoryEntry};
+use crate::settings::Preferences;
 use anyhow::{Context, Result, bail, ensure};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -374,6 +375,36 @@ impl Store {
             }
             atomic_write(&self.paths.config, join_lines(&lines).as_bytes(), 0o644)
                 .context("storage: write config")
+        })
+    }
+
+    pub fn load_preferences(&self) -> Result<Preferences> {
+        let path = self.paths.dir.join("gosiptea-settings.json");
+        let Some(data) = read_optional(&path, false)
+            .with_context(|| format!("storage: read {}", path.display()))?
+        else {
+            return Ok(Preferences::default());
+        };
+        ensure!(
+            data.iter().find(|byte| !byte.is_ascii_whitespace()) == Some(&b'{'),
+            anyhow::Error::new(StorageError::Invalid).context(format!(
+                "storage: expected settings object in {}",
+                path.display()
+            ))
+        );
+        serde_json::from_slice(&data).map_err(|error| {
+            anyhow::Error::new(StorageError::Invalid)
+                .context(format!("storage: decode {}: {error}", path.display()))
+        })
+    }
+
+    pub fn save_preferences(&self, preferences: &Preferences) -> Result<()> {
+        let mut data = serde_json::to_vec_pretty(preferences)?;
+        data.push(b'\n');
+        let path = self.paths.dir.join("gosiptea-settings.json");
+        self.with_exclusive_lock(|| {
+            atomic_write(&path, &data, 0o600)
+                .with_context(|| format!("storage: write {}", path.display()))
         })
     }
 
@@ -958,7 +989,8 @@ mod tests {
                     ".accounts.",
                     ".contacts.",
                     ".config.",
-                    ".gosiptea-call-history.json."
+                    ".gosiptea-call-history.json.",
+                    ".gosiptea-settings.json."
                 ]
                 .iter()
                 .any(|prefix| name.starts_with(prefix)),
@@ -977,6 +1009,113 @@ mod tests {
         assert_eq!(store.load_audio().unwrap(), AudioConfig::default());
         assert!(store.load_history().unwrap().is_empty());
         assert!(!store.paths.dir.exists());
+    }
+
+    #[test]
+    fn preferences_missing_and_partial_documents_use_defaults() {
+        use crate::settings::{Language, Theme};
+        let (_temp, store) = store();
+        assert_eq!(store.load_preferences().unwrap(), Preferences::default());
+        assert!(!store.paths.dir.exists());
+        let path = store.paths.dir.join("gosiptea-settings.json");
+        for (data, expected) in [
+            ("{}", Preferences::default()),
+            (
+                r#"{"language":"german"}"#,
+                Preferences {
+                    language: Language::German,
+                    theme: Theme::Dark,
+                },
+            ),
+            (
+                r#"{"theme":"light"}"#,
+                Preferences {
+                    language: Language::English,
+                    theme: Theme::Light,
+                },
+            ),
+        ] {
+            fixture(&store, &path, data, 0o600);
+            assert_eq!(store.load_preferences().unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn preferences_reject_invalid_documents() {
+        let (_temp, store) = store();
+        let path = store.paths.dir.join("gosiptea-settings.json");
+        for data in [
+            "",
+            "{",
+            "null",
+            "[]",
+            r#"{"language":"French"}"#,
+            r#"{"theme":"Dark"}"#,
+            r#"{"theme":null}"#,
+            r#"{"extra":true}"#,
+        ] {
+            fixture(&store, &path, data, 0o600);
+            assert_error(store.load_preferences(), StorageError::Invalid);
+            assert_eq!(text(&path), data);
+        }
+    }
+
+    #[test]
+    fn preferences_round_trip_permissions_and_replacement() {
+        use crate::settings::{Language, Theme};
+        let (_temp, store) = store();
+        let path = store.paths.dir.join("gosiptea-settings.json");
+        for language in [Language::English, Language::German] {
+            for theme in [Theme::Dark, Theme::Light] {
+                let preferences = Preferences { language, theme };
+                store.save_preferences(&preferences).unwrap();
+                assert_eq!(
+                    Store::new(&store.paths.dir).load_preferences().unwrap(),
+                    preferences
+                );
+                let json: serde_json::Value = serde_json::from_str(&text(&path)).unwrap();
+                assert_eq!(
+                    json["language"],
+                    if language == Language::English {
+                        "english"
+                    } else {
+                        "german"
+                    }
+                );
+                assert_eq!(
+                    json["theme"],
+                    if theme == Theme::Dark {
+                        "dark"
+                    } else {
+                        "light"
+                    }
+                );
+                assert_eq!(mode(&path), 0o600);
+                assert_eq!(mode(&store.paths.dir), 0o700);
+                assert_eq!(mode(&store.paths.lock), 0o600);
+                no_temporary_files(&store);
+            }
+        }
+    }
+
+    #[test]
+    fn preferences_refuse_symlinks_and_oversized_files() {
+        let (temp, store) = store();
+        let path = store.paths.dir.join("gosiptea-settings.json");
+        let target = temp.path().join("target");
+        fs::write(&target, "{}").unwrap();
+        fs::create_dir_all(&store.paths.dir).unwrap();
+        symlink(&target, &path).unwrap();
+        assert_error(store.load_preferences(), StorageError::Symlink);
+        assert_error(
+            store.save_preferences(&Preferences::default()),
+            StorageError::Symlink,
+        );
+        assert_eq!(text(&target), "{}");
+        fs::remove_file(&path).unwrap();
+        fixture(&store, &path, &" ".repeat(MAX_FILE_SIZE + 1), 0o600);
+        assert_error(store.load_preferences(), StorageError::TooLarge);
+        no_temporary_files(&store);
     }
 
     #[test]

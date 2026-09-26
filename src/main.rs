@@ -12,6 +12,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use clap::Parser;
 use gosiptea_client::{
+    assets::Assets,
     input,
     session::{Config, SessionHandle, Snapshot},
     storage,
@@ -84,6 +85,7 @@ fn run() -> Result<()> {
         .join(".baresip"),
     };
     storage::ensure_config(&directory)?;
+    let settings_store = storage::Store::new(directory.clone());
     let mut config = Config::new(directory);
     config.baresip_path = options.baresip;
     config.country_calling_code = options.country_code;
@@ -103,7 +105,8 @@ fn run() -> Result<()> {
     let startup_error = Arc::new(Mutex::new(None));
     let ui_error = startup_error.clone();
     let terminal = run_guarded(session, move |ui_session| {
-        Application::new().run(move |cx: &mut App| {
+        let app = Application::new().with_assets(Assets);
+        app.run(move |cx: &mut App| {
             input::init(cx);
             cx.on_window_closed(|cx| {
                 if cx.windows().is_empty() {
@@ -125,7 +128,11 @@ fn run() -> Result<()> {
                 },
                 |window, cx| {
                     window.set_window_title("GoSipTea");
-                    cx.new(|cx| Workspace::new(ui_session, interrupted, window, cx))
+                    cx.new(|cx| {
+                        let mut workspace = Workspace::new(ui_session, interrupted, window, cx);
+                        workspace.load_settings(settings_store, cx);
+                        workspace
+                    })
                 },
             );
             match result {

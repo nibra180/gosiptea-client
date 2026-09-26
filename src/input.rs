@@ -14,9 +14,10 @@ use gpui::{
     GlobalElementId, KeyBinding, LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent,
     MouseUpEvent, PaintQuad, Pixels, Point, ShapedLine, SharedString, Style, TextRun,
     UTF16Selection, UnderlineStyle, Window, actions, div, fill, point, prelude::*, px, relative,
-    rgb, rgba, size,
+    rgb, size,
 };
 
+use crate::settings::palette;
 use editor::{Editor, byte_to_utf16, range_from_utf16, range_to_utf16};
 
 actions!(
@@ -129,6 +130,19 @@ impl TextInput {
         self.did_edit(changed, cx);
     }
 
+    /// Types `text` at the caret like keyboard input, replacing any selection.
+    pub fn insert(&mut self, text: &str, cx: &mut Context<Self>) {
+        let changed = self.editor.replace(None, text, None, false);
+        self.is_selecting = false;
+        self.did_edit(changed, cx);
+    }
+
+    /// Deletes like the Backspace key.
+    pub fn delete_backward(&mut self, cx: &mut Context<Self>) {
+        let changed = self.editor.delete(false);
+        self.did_edit(changed, cx);
+    }
+
     /// Synchronize a snapshot without turning the account form into a user edit.
     pub fn set_value_silent(&mut self, value: impl Into<SharedString>, cx: &mut Context<Self>) {
         let value = value.into();
@@ -195,8 +209,7 @@ impl TextInput {
     }
 
     fn backspace(&mut self, _: &Backspace, _: &mut Window, cx: &mut Context<Self>) {
-        let changed = self.editor.delete(false);
-        self.did_edit(changed, cx);
+        self.delete_backward(cx);
     }
 
     fn delete(&mut self, _: &Delete, _: &mut Window, cx: &mut Context<Self>) {
@@ -410,12 +423,14 @@ impl Element for TextElement {
         window: &mut Window,
         cx: &mut App,
     ) -> PrepaintState {
-        self.input.update(cx, |input, _| {
+        self.input.update(cx, |input, cx| {
             let editor = &input.editor;
             let style = window.text_style();
             // Only this display string reaches the text shaper, including during preedit.
             let display: SharedString = if editor.text.is_empty() {
-                input.placeholder.clone()
+                crate::settings::tr(cx, &input.placeholder)
+                    .to_owned()
+                    .into()
             } else {
                 editor.display_text(input.secret).into()
             };
@@ -423,7 +438,7 @@ impl Element for TextElement {
                 len: display.len(),
                 font: style.font(),
                 color: if editor.text.is_empty() {
-                    rgb(0x737c8f).into()
+                    rgb(palette(cx).muted).into()
                 } else {
                     style.color
                 },
@@ -442,7 +457,7 @@ impl Element for TextElement {
                     TextRun {
                         len: end - start,
                         underline: Some(UnderlineStyle {
-                            color: Some(rgb(0x9985ff).into()),
+                            color: Some(rgb(palette(cx).accent).into()),
                             thickness: px(1.),
                             wavy: false,
                         }),
@@ -483,7 +498,7 @@ impl Element for TextElement {
                     point(origin.x + cursor_x, origin.y),
                     size(px(1.), bounds.size.height),
                 ),
-                rgb(0x9985ff),
+                rgb(palette(cx).accent),
             );
             let selected = editor.selection();
             let selection = if selected.is_empty() {
@@ -496,7 +511,7 @@ impl Element for TextElement {
                         point(origin.x + start.min(end), bounds.top()),
                         point(origin.x + start.max(end), bounds.bottom()),
                     ),
-                    rgba(0x9985ff55),
+                    rgb(palette(cx).selection),
                 ))
             };
             input.last_bounds = Some(bounds);
@@ -582,10 +597,10 @@ impl Render for TextInput {
             .py(px(7.))
             .border_1()
             .rounded(px(5.))
-            .bg(rgb(0x181b22))
-            .border_color(rgb(0x353b48))
-            .focus(|style| style.border_color(rgb(0x9985ff)))
-            .text_color(rgb(0xdce0e8))
+            .bg(rgb(palette(cx).panel))
+            .border_color(rgb(palette(cx).border))
+            .focus(|style| style.border_color(rgb(palette(cx).accent)))
+            .text_color(rgb(palette(cx).text))
             .text_size(px(14.))
             .line_height(px(22.))
             .overflow_hidden()
@@ -609,6 +624,33 @@ impl Render for TextInput {
             .on_action(cx.listener(|_, _: &Previous, _, cx| cx.emit(InputEvent::Previous)))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
             .child(TextElement { input: cx.entity() })
+    }
+}
+
+#[cfg(test)]
+mod presentation_tests {
+    use super::*;
+    use crate::settings::{Language, Preferences, Theme};
+
+    #[gpui::test]
+    fn placeholder_is_reshaped_after_language_and_theme_changes(cx: &mut gpui::TestAppContext) {
+        let (input, cx) =
+            cx.add_window_view(|_, cx| TextInput::new("Number or SIP address", 255, false, cx));
+        for (language, theme, expected) in [
+            (Language::English, Theme::Dark, "Number or SIP address"),
+            (Language::German, Theme::Light, "Nummer oder SIP-Adresse"),
+            (Language::English, Theme::Dark, "Number or SIP address"),
+        ] {
+            input.update(cx, |_, cx| {
+                cx.set_global(Preferences { language, theme });
+                cx.notify();
+            });
+            cx.run_until_parked();
+            input.read_with(cx, |input, _| {
+                assert_eq!(input.last_layout.as_ref().unwrap().text.as_ref(), expected);
+                assert!(input.value().is_empty());
+            });
+        }
     }
 }
 

@@ -56,6 +56,8 @@ pub enum Action {
     Reject,
     Hangup,
     ToggleMute,
+    ToggleHold,
+    SendDigit(char),
     ToggleDnd,
     AddContact(Contact),
     RemoveContact(String),
@@ -689,6 +691,8 @@ impl Worker {
             Action::Answer => domain::Action::Answer,
             Action::Reject | Action::Hangup => domain::Action::Hangup,
             Action::ToggleMute => domain::Action::ToggleMute,
+            Action::ToggleHold => domain::Action::ToggleHold,
+            Action::SendDigit(digit) => domain::Action::SendDigit(digit),
             Action::ToggleDnd => domain::Action::ToggleDnd,
             Action::AddContact(mut contact) => {
                 let account = &self.current.account;
@@ -814,6 +818,9 @@ impl Worker {
             CommandKind::Hangup => ("hangup", command.parameter.as_str()),
             CommandKind::Reject => ("hangup", "scode=603 reason=Decline"),
             CommandKind::Mute => ("mute", command.parameter.as_str()),
+            CommandKind::Hold => ("hold", command.parameter.as_str()),
+            CommandKind::Resume => ("resume", command.parameter.as_str()),
+            CommandKind::Dtmf => ("sndcode", command.parameter.as_str()),
         };
         let response = self
             .backend()?
@@ -1878,6 +1885,33 @@ mod tests {
         assert_eq!(
             h.session.snapshot().history[0].outcome,
             domain::CallOutcome::Connected
+        );
+    }
+
+    #[test]
+    fn hold_rolls_back_on_failure_and_dtmf_sends_single_digits() {
+        let h = Harness::new();
+        h.action(Action::Dial("123".into())).unwrap();
+        h.event("CALL_ESTABLISHED", "out-1", "sip:123@example.com");
+        h.wait(|snapshot| snapshot.state.call_state == domain::CallState::Active);
+        h.backend
+            .lock()
+            .unwrap()
+            .failures
+            .insert("hold".into(), "hold refused".into());
+        assert!(h.action(Action::ToggleHold).is_err());
+        assert!(!h.session.snapshot().state.on_hold);
+        h.backend.lock().unwrap().failures.remove("hold");
+        h.action(Action::ToggleHold).unwrap();
+        assert!(h.session.snapshot().state.on_hold);
+        h.action(Action::SendDigit('1')).unwrap();
+        h.action(Action::ToggleHold).unwrap();
+        assert!(!h.session.snapshot().state.on_hold);
+        h.action(Action::SendDigit('#')).unwrap();
+        let commands = h.backend.lock().unwrap().commands.clone();
+        assert_eq!(
+            commands[commands.len() - 4..],
+            ["hold", "hold", "resume", "sndcode #"]
         );
     }
 

@@ -72,6 +72,7 @@ pub struct State {
     pub call_target: String,
     pub peer: String,
     pub muted: bool,
+    pub on_hold: bool,
     pub dnd: bool,
     pub end_requested: bool,
     pub registered: bool,
@@ -134,6 +135,8 @@ pub enum Action {
     Answer,
     Hangup,
     ToggleMute,
+    ToggleHold,
+    SendDigit(char),
     ToggleDnd,
 }
 
@@ -175,6 +178,9 @@ pub enum CommandKind {
     Hangup,
     Reject,
     Mute,
+    Hold,
+    Resume,
+    Dtmf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -275,6 +281,7 @@ pub fn reduce(
                         }
                         s.call_state = CallState::Active;
                         s.muted = false;
+                        s.on_hold = false;
                         s.call_started_at = Some(now);
                         s.call_state_changed_at = Some(now);
                     }
@@ -412,6 +419,25 @@ fn reduce_action(
                 parameter: String::new(),
             })
         }
+        Action::ToggleHold if s.call_state == CallState::Active => {
+            s.on_hold = !s.on_hold;
+            Some(Command {
+                kind: if s.on_hold {
+                    CommandKind::Hold
+                } else {
+                    CommandKind::Resume
+                },
+                parameter: String::new(),
+            })
+        }
+        Action::SendDigit(digit)
+            if s.call_state == CallState::Active && !s.on_hold && is_dtmf_digit(digit) =>
+        {
+            Some(Command {
+                kind: CommandKind::Dtmf,
+                parameter: digit.into(),
+            })
+        }
         Action::ToggleDnd => {
             s.dnd = !s.dnd;
             None
@@ -438,6 +464,7 @@ fn begin_call(
     s.peer = peer.into();
     s.call_target = target.into();
     s.muted = false;
+    s.on_hold = false;
     s.end_requested = false;
     s.call_created_at = Some(now);
     s.call_started_at = None;
@@ -556,6 +583,7 @@ fn reduce_closed(result: &mut Transition, id: &str, now: DateTime<Utc>) {
     s.call_target.clear();
     s.peer.clear();
     s.muted = false;
+    s.on_hold = false;
     s.end_requested = false;
     s.call_created_at = None;
     s.call_ended_at = Some(now);
@@ -692,6 +720,10 @@ fn path_unescape(text: &str) -> Option<Vec<u8>> {
         }
     }
     Some(result)
+}
+
+pub fn is_dtmf_digit(digit: char) -> bool {
+    digit.is_ascii_digit() || matches!(digit, '*' | '#')
 }
 
 pub fn peer_display(uri: &str) -> String {
@@ -1483,12 +1515,63 @@ mod tests {
             Some(at() + Duration::seconds(62))
         );
         assert!(!closed.state.muted);
+        assert!(!closed.state.on_hold);
         assert!(closed.notifications.is_empty());
         assert_eq!(closed.history[0].outcome, CallOutcome::Connected);
         assert_eq!(
             closed.history[0].connected_at,
             established.state.call_started_at
         );
+    }
+
+    #[test]
+    fn hold_and_dtmf_only_act_on_an_active_call() {
+        let active = State {
+            registered: true,
+            call_state: CallState::Active,
+            call_id: "call-1".into(),
+            ..State::default()
+        };
+        let command = |kind, parameter: &str| Command {
+            kind,
+            parameter: parameter.into(),
+        };
+        let held = action(&active, Action::ToggleHold);
+        assert!(held.state.on_hold);
+        assert_eq!(held.commands, [command(CommandKind::Hold, "")]);
+        assert!(
+            action(&held.state, Action::SendDigit('5'))
+                .commands
+                .is_empty()
+        );
+        let resumed = action(&held.state, Action::ToggleHold);
+        assert!(!resumed.state.on_hold);
+        assert_eq!(resumed.commands, [command(CommandKind::Resume, "")]);
+        for digit in ['0', '9', '*', '#'] {
+            assert_eq!(
+                action(&active, Action::SendDigit(digit)).commands,
+                [command(CommandKind::Dtmf, &digit.to_string())]
+            );
+        }
+        for digit in ['A', 'x', ' ', '\n'] {
+            assert!(
+                action(&active, Action::SendDigit(digit))
+                    .commands
+                    .is_empty()
+            );
+        }
+        for call_state in [CallState::Idle, CallState::Incoming, CallState::Outgoing] {
+            let state = State {
+                call_state,
+                ..active.clone()
+            };
+            let hold = action(&state, Action::ToggleHold);
+            assert!(hold.commands.is_empty());
+            assert!(!hold.state.on_hold);
+            assert!(action(&state, Action::SendDigit('1')).commands.is_empty());
+        }
+        let closed = step(&held.state, call(CallEventType::Closed, "call-1", ""), 5);
+        assert!(!closed.state.on_hold);
     }
 
     #[test]
