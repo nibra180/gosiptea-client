@@ -44,7 +44,7 @@ Die Ansicht wechselt per Klick in der Navigation oder per Tastatur. `Ctrl+1` bis
 
 - Phone: Das Dial-Feld hat beim Öffnen den Fokus, man kann also sofort tippen. Auch nach Esc landet die nächste Taste wieder im Feld. Darunter liegt ein Wähltastenfeld wie in der Android-Telefon-App. Der grüne Button wählt die Nummer. Ist das Feld leer, setzt er den Cursor hinein. Links davon schaltet DND um, rechts löscht Backspace das letzte Zeichen.
 - Anrufbildschirm: Geht ein Anruf ein oder beginnt ein ausgehender, wechselt die App auf Phone. Der Aufbau folgt der Android-Telefon-App. Oben stehen Status, Initialen, Name und Nummer, unten die runden Buttons. Ein eingehender Anruf hat „Decline“ links und „Answer“ rechts. Im Gespräch gibt es Mute, Keypad, Hold, DND und Auflegen. Das Keypad sendet jede Ziffer sofort als DTMF. Das gilt für angeklickte Tasten und, solange das Keypad offen ist, auch für Ziffern, `*` und `#` von der Tastatur. Andere Tasten haben im Gespräch keine Wirkung. Während Hold sind Mute und Keypad gesperrt. In den anderen Ansichten führt ein Banner über dem Inhalt zurück zum Gespräch.
-- Contacts: Ein Klick wählt einen Eintrag aus, „Dial“ ruft ihn an, „Remove“ entfernt ihn, „Add“ öffnet das Formular.
+- Contacts: Ein Klick wählt einen Eintrag aus. Rechts stehen Icons zum Anrufen und Löschen. „Add“ öffnet das Formular.
 - Audio: Ein Klick auf einen Eintrag übernimmt das Gerät. Ein Klick auf den Regler setzt die Lautstärke in 5-%-Schritten.
 - Account: In die Felder klicken, „TLS and SRTP“ umschalten, mit „Save account“ speichern. Ein leeres Passwort behält das gespeicherte.
 - History: Ein Klick wählt einen Anruf aus, „Dial“ ruft erneut an.

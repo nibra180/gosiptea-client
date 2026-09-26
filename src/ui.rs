@@ -1084,35 +1084,15 @@ impl Workspace {
         }
         let contacts = self.contacts(cx);
         let empty = contacts.is_empty();
-        let selected = contacts.get(self.contact_cursor).cloned();
-        let mut pane = column().child(heading(cx, "Contacts")).child(input_row(
-            cx,
-            "Search",
-            self.search.clone(),
-        ));
-        let mut controls = div().flex().gap_2().mt_2().child(
-            button(cx, "add-contact", tr(cx, "Add"), palette(cx).accent)
-                .on_click(cx.listener(|this, _, window, cx| this.begin_contact(window, cx))),
-        );
-        if let Some(contact) = selected {
-            let target = contact.uri.clone();
-            controls = controls
-                .child(
-                    button(cx, "dial-contact", tr(cx, "Dial"), palette(cx).text).on_click(
-                        cx.listener(move |this, _, _, cx| {
-                            this.dispatch(Action::Dial(target.clone()), cx)
-                        }),
+        let mut pane =
+            column()
+                .child(heading(cx, "Contacts"))
+                .child(input_row(cx, "Search", self.search.clone()))
+                .child(div().flex().gap_2().mt_2().child(
+                    button(cx, "add-contact", tr(cx, "Add"), palette(cx).accent).on_click(
+                        cx.listener(|this, _, window, cx| this.begin_contact(window, cx)),
                     ),
-                )
-                .child(
-                    button(cx, "remove-contact", tr(cx, "Remove"), palette(cx).error).on_click(
-                        cx.listener(move |this, _, _, cx| {
-                            this.dispatch(Action::RemoveContact(contact.uri.clone()), cx)
-                        }),
-                    ),
-                );
-        }
-        pane = pane.child(controls);
+                ));
         if empty {
             pane = pane.child(
                 div()
@@ -1130,18 +1110,66 @@ impl Workspace {
                 .overflow_y_scroll()
                 .track_scroll(&self.contact_scroll)
                 .children(contacts.into_iter().enumerate().map(|(i, contact)| {
-                    let name = if contact.name.trim().is_empty() {
-                        contact.uri.clone()
-                    } else {
+                    let named = !contact.name.trim().is_empty();
+                    let name = if named {
                         domain::clamp_text(&contact.name, MAX_CONTACT_NAME)
+                    } else {
+                        domain::clamp_text(&contact.uri, MAX_FIELD_LENGTH)
                     };
+                    let uri = domain::clamp_text(&contact.uri, MAX_FIELD_LENGTH);
+                    let dial_uri = contact.uri.clone();
+                    let remove_uri = contact.uri.clone();
                     row(cx, ("contact", i), self.contact_cursor == i)
-                        .child(div().w(px(210.)).flex_shrink_0().truncate().child(name))
                         .child(
                             div()
-                                .text_color(rgb(palette(cx).muted))
-                                .truncate()
-                                .child(domain::clamp_text(&contact.uri, MAX_FIELD_LENGTH)),
+                                .flex_1()
+                                .min_w_0()
+                                .flex()
+                                .flex_col()
+                                .child(div().truncate().child(name))
+                                .when(named, |text| {
+                                    text.child(
+                                        div()
+                                            .truncate()
+                                            .text_xs()
+                                            .text_color(rgb(palette(cx).muted))
+                                            .child(uri),
+                                    )
+                                }),
+                        )
+                        .child(
+                            div()
+                                .flex()
+                                .flex_shrink_0()
+                                .items_center()
+                                .gap_1()
+                                .child(
+                                    icon_button(
+                                        format!("contact-dial-{i}").into(),
+                                        "icons/call.svg",
+                                        palette(cx).good,
+                                    )
+                                    .on_click(cx.listener(
+                                        move |this, _, _, cx| {
+                                            this.dispatch(Action::Dial(dial_uri.clone()), cx)
+                                        },
+                                    )),
+                                )
+                                .child(
+                                    icon_button(
+                                        format!("contact-remove-{i}").into(),
+                                        "icons/delete.svg",
+                                        palette(cx).error,
+                                    )
+                                    .on_click(cx.listener(
+                                        move |this, _, _, cx| {
+                                            this.dispatch(
+                                                Action::RemoveContact(remove_uri.clone()),
+                                                cx,
+                                            )
+                                        },
+                                    )),
+                                ),
                         )
                         .on_click(cx.listener(move |this, _, window, cx| {
                             this.contact_cursor = i;
@@ -1701,6 +1729,20 @@ fn keypad_grid(
 }
 fn icon(path: &'static str, size: f32, color: u32) -> Svg {
     svg().path(path).size(px(size)).text_color(rgb(color))
+}
+fn icon_button(id: SharedString, path: &'static str, color: u32) -> Stateful<Div> {
+    let selector = id.to_string();
+    pressable(
+        div()
+            .id(id)
+            .debug_selector(move || selector)
+            .flex()
+            .flex_shrink_0()
+            .items_center()
+            .justify_center()
+            .size(px(32.)),
+    )
+    .child(icon(path, 18., color))
 }
 fn labeled(cx: &App, button: impl IntoElement, label: &'static str) -> Div {
     div()

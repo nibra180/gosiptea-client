@@ -509,7 +509,9 @@ fn contact_add_normalizes_redisplays_searches_and_removes(cx: &mut TestAppContex
         assert_eq!(this.search.read(cx).value(), "ALICE");
         assert_eq!(this.contacts(cx)[0].uri, "sip:12345@example.com");
     });
-    click(cx, "remove-contact");
+    assert!(cx.debug_bounds("contact-dial-0").is_some());
+    assert!(cx.debug_bounds("contact-remove-0").is_some());
+    click(cx, "contact-remove-0");
     fixture.settle(&workspace, cx);
     workspace.read_with(cx, |this, cx| {
         assert!(this.contacts(cx).is_empty());
@@ -529,6 +531,9 @@ fn contact_add_normalizes_redisplays_searches_and_removes(cx: &mut TestAppContex
             .len(),
         1
     );
+    click(cx, "contact-dial-0");
+    fixture.settle(&workspace, cx);
+    assert_eq!(fixture.commands("dial"), ["sip:bob@elsewhere.example"]);
 }
 
 #[gpui::test]

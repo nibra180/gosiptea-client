@@ -4,7 +4,7 @@ use anyhow::Result;
 use gpui::{AssetSource, SharedString};
 
 /// Material Symbols Rounded, filled, Apache 2.0. See assets/icons/LICENSE.
-const ICONS: [(&str, &[u8]); 8] = [
+const ICONS: [(&str, &[u8]); 9] = [
     (
         "icons/backspace.svg",
         include_bytes!("../assets/icons/backspace.svg"),
@@ -13,6 +13,10 @@ const ICONS: [(&str, &[u8]); 8] = [
     (
         "icons/call_end.svg",
         include_bytes!("../assets/icons/call_end.svg"),
+    ),
+    (
+        "icons/delete.svg",
+        include_bytes!("../assets/icons/delete.svg"),
     ),
     (
         "icons/dialpad.svg",
