@@ -1,0 +1,208 @@
+use std::{
+    panic::{AssertUnwindSafe, catch_unwind, resume_unwind},
+    path::PathBuf,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread::{self, JoinHandle},
+    time::Duration,
+};
+
+use anyhow::{Context, Result, bail};
+use clap::Parser;
+use gosiptea_client::{
+    input,
+    session::{Config, SessionHandle, Snapshot},
+    storage,
+    ui::Workspace,
+};
+use gpui::{
+    App, AppContext, Application, Bounds, TitlebarOptions, WindowBounds, WindowOptions, px, size,
+};
+
+#[derive(Parser)]
+#[command(about = "GoSipTea SIP softphone")]
+struct Options {
+    #[arg(long, help = "baresip configuration directory, defaults to ~/.baresip")]
+    config_dir: Option<PathBuf>,
+    #[arg(long, default_value = "baresip")]
+    baresip: PathBuf,
+    #[arg(
+        long,
+        default_value = "49",
+        help = "Country calling code used for contact matching"
+    )]
+    country_code: String,
+    #[arg(long, help = "Append sensitive baresip debugging output to this file")]
+    baresip_log: Option<PathBuf>,
+    #[arg(
+        long,
+        num_args = 0..=1,
+        default_missing_value = "true",
+        default_value = "false",
+        action = clap::ArgAction::Set,
+        requires_if("true", "baresip_log"),
+        help = "Trace SIP from startup; includes authentication and call data"
+    )]
+    sip_trace: bool,
+}
+
+fn main() {
+    env_logger::init();
+    if let Err(error) = run() {
+        eprintln!("gosiptea-client: {error:#}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<()> {
+    // Accept the original Go flag spelling as well as Rust's double-dash spelling.
+    let args = std::env::args_os().map(|arg| {
+        let text = arg.to_string_lossy();
+        let name = text.split('=').next().unwrap_or_default();
+        if [
+            "-config-dir",
+            "-baresip",
+            "-country-code",
+            "-baresip-log",
+            "-sip-trace",
+        ]
+        .contains(&name)
+        {
+            format!("-{text}").into()
+        } else {
+            arg
+        }
+    });
+    let options = Options::parse_from(args);
+    let directory = match options.config_dir {
+        Some(directory) => directory,
+        None => PathBuf::from(
+            std::env::var_os("HOME").context("cannot find home directory; pass --config-dir")?,
+        )
+        .join(".baresip"),
+    };
+    storage::ensure_config(&directory)?;
+    let mut config = Config::new(directory);
+    config.baresip_path = options.baresip;
+    config.country_calling_code = options.country_code;
+    config.log_path = options.baresip_log;
+    config.sip_trace = options.sip_trace;
+    let interrupted = Arc::new(AtomicBool::new(false));
+    for signal in [
+        signal_hook::consts::SIGINT,
+        signal_hook::consts::SIGTERM,
+        signal_hook::consts::SIGHUP,
+    ] {
+        signal_hook::flag::register(signal, interrupted.clone())
+            .context("register shutdown signal")?;
+    }
+    let session = Arc::new(SessionHandle::start(config).context("start phone session")?);
+    let signals = InterruptRelay::new(session.clone(), interrupted.clone())?;
+    let startup_error = Arc::new(Mutex::new(None));
+    let ui_error = startup_error.clone();
+    let terminal = run_guarded(session, move |ui_session| {
+        Application::new().run(move |cx: &mut App| {
+            input::init(cx);
+            cx.on_window_closed(|cx| {
+                if cx.windows().is_empty() {
+                    cx.quit();
+                }
+            })
+            .detach();
+            let bounds = Bounds::centered(None, size(px(1000.), px(700.)), cx);
+            let result = cx.open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    titlebar: Some(TitlebarOptions {
+                        title: Some("GoSipTea".into()),
+                        ..Default::default()
+                    }),
+                    app_id: Some("gosiptea-client".into()),
+                    window_min_size: Some(size(px(540.), px(440.))),
+                    ..Default::default()
+                },
+                |window, cx| {
+                    window.set_window_title("GoSipTea");
+                    cx.new(|cx| Workspace::new(ui_session, interrupted, window, cx))
+                },
+            );
+            match result {
+                Ok(_) => cx.activate(true),
+                Err(error) => {
+                    *ui_error.lock().unwrap() = Some(format!("open window: {error:#}"));
+                    cx.quit();
+                }
+            }
+        });
+    })?;
+    drop(signals);
+    if let Some(error) = startup_error.lock().unwrap().take() {
+        bail!(error);
+    }
+    if !terminal.running && !terminal.last_error.is_empty() {
+        bail!("{}", terminal.last_error);
+    }
+    Ok(())
+}
+
+struct InterruptRelay {
+    done: Arc<AtomicBool>,
+    worker: Option<JoinHandle<()>>,
+}
+
+impl InterruptRelay {
+    fn new(session: Arc<SessionHandle>, interrupted: Arc<AtomicBool>) -> Result<Self> {
+        let done = Arc::new(AtomicBool::new(false));
+        let finished = done.clone();
+        let worker = thread::Builder::new()
+            .name("sip-signals".into())
+            .spawn(move || {
+                while !finished.load(Ordering::Acquire) {
+                    if interrupted.load(Ordering::Relaxed) {
+                        session.request_shutdown();
+                        break;
+                    }
+                    thread::park_timeout(Duration::from_millis(20));
+                }
+            })
+            .context("start shutdown signal relay")?;
+        Ok(Self {
+            done,
+            worker: Some(worker),
+        })
+    }
+}
+
+impl Drop for InterruptRelay {
+    fn drop(&mut self) {
+        self.done.store(true, Ordering::Release);
+        if let Some(worker) = self.worker.take() {
+            worker.thread().unpark();
+            let _ = worker.join();
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "main_tests.rs"]
+mod tests;
+
+fn run_guarded(
+    session: Arc<SessionHandle>,
+    ui: impl FnOnce(Arc<SessionHandle>),
+) -> Result<Snapshot> {
+    let outcome = catch_unwind(AssertUnwindSafe(|| ui(session.clone())));
+    let terminal = session.snapshot();
+    // GPUI may retain entities on unwind, so cleanup cannot depend on the last Arc dropping.
+    let stopped = match Arc::try_unwrap(session) {
+        Ok(mut session) => session.shutdown(),
+        Err(session) => session.dispatch_wait(gosiptea_client::session::Action::Quit),
+    };
+    if let Err(panic) = outcome {
+        resume_unwind(panic);
+    }
+    stopped?;
+    Ok(terminal)
+}
