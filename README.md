@@ -115,9 +115,9 @@ A real call through a SIP server to another party remains a manual test.
 
 ## References and license
 
-- The original GoSipTea, unchanged in the neighboring project.
+- [oma.sip](https://github.com/Vinicius-Galleti/oma.sip) by Vinicius Galleti inspired the app. `src/config.tmpl` is based on its baresip configuration template.
 - [Zed](https://github.com/zed-industries/zed), mainly its workspace layout and GPUI entity model.
 - [GPUI](https://gpui.rs/) and the input example from version 0.2.2.
 - [Material Symbols](https://github.com/google/material-design-icons) for the icons.
 
-The original project's MIT license is in `LICENSE`. `src/input.rs` contains the attribution and the Apache 2.0 license of the GPUI example it is based on. The icons in `assets/icons` are also under Apache 2.0, with the license in `assets/icons/LICENSE`.
+The MIT license is in `LICENSE`. It keeps the copyright notice of oma.sip for the configuration template. `src/input.rs` contains the attribution and the Apache 2.0 license of the GPUI example it is based on. The icons in `assets/icons` are also under Apache 2.0, with the license in `assets/icons/LICENSE`.
