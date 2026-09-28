@@ -241,7 +241,34 @@ pub fn tr<'a>(cx: &App, text: &'a str) -> &'a str {
         "Dark" => "Dunkel",
         "Light" => "Hell",
         "Changes are saved automatically." => "Änderungen werden automatisch gespeichert.",
-        "Ctrl+1-5 or Ctrl+Tab switch views" => "Strg+1-5 oder Strg+Tab wechselt die Ansicht",
+        "Help" => "Hilfe",
+        "Navigation" => "Navigation",
+        "Text fields" => "Textfelder",
+        "Ctrl+1 … Ctrl+5" => "Strg+1 … Strg+5",
+        "Opens Phone, Contacts, Account, History or Settings" => {
+            "Öffnet Telefon, Kontakte, Konto, Verlauf oder Einstellungen"
+        }
+        "Ctrl+Tab" => "Strg+Tab",
+        "Next view" => "Nächste Ansicht",
+        "Ctrl+Shift+Tab" => "Strg+Umschalt+Tab",
+        "Previous view" => "Vorherige Ansicht",
+        "Ctrl+F" => "Strg+F",
+        "Jumps to the contact search" => "Springt zur Kontaktsuche",
+        "Shows this help" => "Zeigt diese Hilfe",
+        "Typing" => "Tippen",
+        "Enters the number, even after Esc" => "Schreibt ins Wahlfeld, auch nach Esc",
+        "Dials the number" => "Wählt die Nummer",
+        "0-9, * and #" => "0-9, * und #",
+        "Sends DTMF while the keypad is open" => "Sendet DTMF bei offenem Tastenfeld",
+        "Next field" => "Nächstes Feld",
+        "Shift+Tab" => "Umschalt+Tab",
+        "Previous field" => "Vorheriges Feld",
+        "Leaves the field and cancels a new contact" => {
+            "Verlässt das Feld und verwirft einen neuen Kontakt"
+        }
+        "Saves a new contact from the address field" => {
+            "Speichert im Adressfeld einen neuen Kontakt"
+        }
         "Phone" => "Telefon",
         "Contacts" => "Kontakte",
         "Audio" => "Audio",

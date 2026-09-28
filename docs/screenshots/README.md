@@ -1,6 +1,6 @@
 # Demo screenshots
 
-12 native captures of the app with made-up data, the English UI and the dark theme.
+14 native captures of the app with made-up data, the English UI and the dark theme.
 
 - Desktop: 1100 × 760 pixel window, 1180 × 840 pixel screenshot, navigation in the sidebar.
 - Compact: 600 × 800 pixel window, 680 × 880 pixel screenshot, navigation at the top.
@@ -14,6 +14,7 @@
 | Account | [![Account, desktop](desktop-account.png)](desktop-account.png) | [![Account, compact](compact-account.png)](compact-account.png) |
 | History | [![History, desktop](desktop-history.png)](desktop-history.png) | [![History, compact](compact-history.png)](compact-history.png) |
 | Settings | [![Settings, desktop](desktop-settings.png)](desktop-settings.png) | [![Settings, compact](compact-settings.png)](compact-settings.png) |
+| Help | [![Help, desktop](desktop-help.png)](desktop-help.png) | [![Help, compact](compact-help.png)](compact-help.png) |
 | Incoming call | [![Incoming call, desktop](desktop-incoming.png)](desktop-incoming.png) | [![Incoming call, compact](compact-incoming.png)](compact-incoming.png) |
 
 ## Recreating the screenshots

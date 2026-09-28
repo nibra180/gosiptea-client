@@ -311,6 +311,44 @@ fn ctrl_digits_and_ctrl_tab_switch_views_even_from_text_fields(cx: &mut TestAppC
 }
 
 #[gpui::test]
+fn help_opens_from_its_icon_and_f1_and_ctrl_f_jumps_to_the_contact_search(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let (workspace, cx) = fixture.open(cx);
+    let active = |cx: &mut VisualTestContext| workspace.read_with(cx, |this, _| this.active);
+    click(cx, "view-help");
+    assert_eq!(active(cx), View::Help);
+    cx.simulate_keystrokes("ctrl-tab");
+    assert_eq!(active(cx), View::Phone);
+    // The dial field has focus and must not receive a character.
+    cx.simulate_keystrokes("f1");
+    assert_eq!(active(cx), View::Help);
+    cx.simulate_keystrokes("ctrl-shift-tab");
+    assert_eq!(active(cx), View::Settings);
+    cx.simulate_keystrokes("ctrl-6");
+    assert_eq!(active(cx), View::Settings);
+
+    show(cx, View::Contacts);
+    click(cx, "add-contact");
+    cx.simulate_input("Ada");
+    cx.simulate_keystrokes("ctrl-f");
+    cx.simulate_input("mia");
+    cx.update(|window, cx| {
+        let this = workspace.read(cx);
+        assert_eq!(this.active, View::Contacts);
+        assert!(!this.adding_contact);
+        assert!(this.search.focus_handle(cx).is_focused(window));
+        assert_eq!(this.search.read(cx).value(), "mia");
+        assert!(this.dial.read(cx).value().is_empty());
+    });
+    cx.simulate_keystrokes("ctrl-1 ctrl-f");
+    cx.update(|window, cx| {
+        let this = workspace.read(cx);
+        assert_eq!(this.active, View::Contacts);
+        assert!(this.search.focus_handle(cx).is_focused(window));
+    });
+}
+
+#[gpui::test]
 fn settings_switch_live_and_persist_without_losing_input(cx: &mut TestAppContext) {
     let fixture = Fixture::new();
     let store = Store::new(fixture.directory.path());
@@ -425,7 +463,14 @@ fn settings_remain_reachable_in_compact_german_navigation(cx: &mut TestAppContex
     let english_width = cx.debug_bounds("view-4").unwrap().size.width;
     click(cx, "language-de");
     assert!(cx.debug_bounds("view-4").unwrap().size.width > english_width);
-    for selector in ["view-0", "view-1", "view-2", "view-3", "view-4"] {
+    for selector in [
+        "view-0",
+        "view-1",
+        "view-2",
+        "view-3",
+        "view-4",
+        "view-help",
+    ] {
         let bounds = cx.debug_bounds(selector).unwrap();
         assert!(bounds.left() >= px(0.) && bounds.right() <= px(540.));
         assert!(bounds.top() >= px(0.) && bounds.bottom() <= px(440.));

@@ -11,9 +11,9 @@ use std::{
 use chrono::{DateTime, Datelike, Local, Utc};
 use gpui::{
     AnyElement, App, Bounds, Context, Div, Empty, Entity, FocusHandle, Focusable, KeyDownEvent,
-    Keystroke, MouseButton, Pixels, ScrollHandle, SharedString, Stateful, Subscription, Svg, Task,
-    Timer, Window, canvas, div, img, linear_color_stop, linear_gradient, prelude::*, px, relative,
-    rgb, rgba, svg,
+    Keystroke, Modifiers, MouseButton, Pixels, ScrollHandle, SharedString, Stateful, Subscription,
+    Svg, Task, Timer, Window, canvas, div, img, linear_color_stop, linear_gradient, prelude::*, px,
+    relative, rgb, rgba, svg,
 };
 
 use crate::{
@@ -38,6 +38,38 @@ const VOLUME_KNOB: f32 = 16.;
 const PHONE_COLUMN_WIDTH: f32 = 360.;
 /// Only the tail of a long DTMF sequence stays visible above the keypad.
 const MAX_DTMF_DISPLAY: usize = 24;
+const SHORTCUTS: [(&str, &[(&str, &str)]); 3] = [
+    (
+        "Navigation",
+        &[
+            (
+                "Ctrl+1 … Ctrl+5",
+                "Opens Phone, Contacts, Account, History or Settings",
+            ),
+            ("Ctrl+Tab", "Next view"),
+            ("Ctrl+Shift+Tab", "Previous view"),
+            ("Ctrl+F", "Jumps to the contact search"),
+            ("F1", "Shows this help"),
+        ],
+    ),
+    (
+        "Phone",
+        &[
+            ("Typing", "Enters the number, even after Esc"),
+            ("Enter", "Dials the number"),
+            ("0-9, * and #", "Sends DTMF while the keypad is open"),
+        ],
+    ),
+    (
+        "Text fields",
+        &[
+            ("Tab", "Next field"),
+            ("Shift+Tab", "Previous field"),
+            ("Esc", "Leaves the field and cancels a new contact"),
+            ("Enter", "Saves a new contact from the address field"),
+        ],
+    ),
+];
 const KEYPAD: [(char, &str); 12] = [
     ('1', ""),
     ('2', "ABC"),
@@ -61,6 +93,8 @@ pub enum View {
     Account,
     History,
     Settings,
+    /// Sits apart at the end of the navigation and outside the Ctrl+digit order.
+    Help,
 }
 
 impl View {
@@ -78,6 +112,7 @@ impl View {
             Self::Account => "Account",
             Self::History => "History",
             Self::Settings => "Settings",
+            Self::Help => "Help",
         }
     }
 }
@@ -654,7 +689,7 @@ impl Workspace {
         );
     }
 
-    /// Ctrl+1 to Ctrl+5 and Ctrl+(Shift+)Tab switch views, also from text fields.
+    /// Ctrl+1 to Ctrl+5, Ctrl+(Shift+)Tab, F1 and Ctrl+F switch views, also from text fields.
     /// Typing on the idle phone view goes to the dial field, even after Esc left it.
     /// During a call, typed digits go to an open keypad.
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
@@ -664,6 +699,11 @@ impl Workspace {
         if let Some(view) = self.view_shortcut(&event.keystroke) {
             cx.stop_propagation();
             self.change_view(view, window, cx);
+            return;
+        }
+        if event.keystroke.key == "f" && event.keystroke.modifiers == Modifiers::control() {
+            cx.stop_propagation();
+            self.search_contacts(window, cx);
             return;
         }
         if self.active != View::Phone || self.typing(window, cx) {
@@ -699,16 +739,29 @@ impl Workspace {
         }
     }
 
+    /// Cancels an open contact form, because the search sits in the list.
+    fn search_contacts(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.adding_contact = false;
+        self.set_view(View::Contacts, cx);
+        self.focus_input(Field::Search, window, cx);
+    }
+
     fn view_shortcut(&self, keystroke: &Keystroke) -> Option<View> {
         let modifiers = &keystroke.modifiers;
+        if keystroke.key == "f1" && !modifiers.modified() {
+            return Some(View::Help);
+        }
         if !modifiers.control || modifiers.alt || modifiers.platform || modifiers.function {
             return None;
         }
         let count = View::ALL.len();
-        let current = View::ALL.iter().position(|view| *view == self.active)?;
+        // From Help, Ctrl+Tab wraps around as if Help came after Settings.
+        let current = View::ALL.iter().position(|view| *view == self.active);
         match keystroke.key.as_str() {
-            "tab" if modifiers.shift => Some(View::ALL[(current + count - 1) % count]),
-            "tab" => Some(View::ALL[(current + 1) % count]),
+            "tab" if modifiers.shift => {
+                Some(View::ALL[current.map_or(count - 1, |i| (i + count - 1) % count)])
+            }
+            "tab" => Some(View::ALL[current.map_or(0, |i| (i + 1) % count)]),
             _ if modifiers.shift => None,
             key => key
                 .parse::<usize>()
@@ -766,6 +819,74 @@ impl Workspace {
                     .on_click(
                         cx.listener(move |this, _, window, cx| this.change_view(view, window, cx)),
                     )
+            }))
+            .when(!compact, |navigation| navigation.child(div().flex_1()))
+            .child(
+                div()
+                    .id("view-help")
+                    .debug_selector(|| "view-help".into())
+                    .when(compact, |item| item.ml_auto())
+                    .flex()
+                    .items_center()
+                    .px_3()
+                    .py_2()
+                    .rounded_sm()
+                    .cursor_pointer()
+                    .bg(rgb(if self.active == View::Help {
+                        palette(cx).selection
+                    } else {
+                        palette(cx).panel
+                    }))
+                    .hover(|style| style.bg(rgb(palette(cx).hover)))
+                    .child(icon(
+                        "icons/help.svg",
+                        20.,
+                        if self.active == View::Help {
+                            palette(cx).accent
+                        } else {
+                            palette(cx).muted
+                        },
+                    ))
+                    .on_click(
+                        cx.listener(|this, _, window, cx| this.change_view(View::Help, window, cx)),
+                    ),
+            )
+            .into_any_element()
+    }
+
+    fn help_view(&self, cx: &Context<Self>) -> AnyElement {
+        column()
+            .children(SHORTCUTS.iter().map(|(title, rows)| {
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap_2()
+                    .mb_3()
+                    .child(div().child(tr(cx, title)))
+                    .children(rows.iter().map(|(keys, description)| {
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_4()
+                            .child(
+                                div().w(px(160.)).flex_shrink_0().flex().child(
+                                    div()
+                                        .px_2()
+                                        .rounded_sm()
+                                        .border_1()
+                                        .border_color(rgb(palette(cx).border))
+                                        .bg(rgb(palette(cx).panel))
+                                        .child(tr(cx, keys)),
+                                ),
+                            )
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .text_color(rgb(palette(cx).muted))
+                                    .child(tr(cx, description)),
+                            )
+                    }))
             }))
             .into_any_element()
     }
@@ -1663,14 +1784,6 @@ impl Workspace {
                     )
                     .child(tr(cx, if state.dnd { "DND on" } else { "DND off" })),
             )
-            .child(
-                div()
-                    .px_4()
-                    .py_1()
-                    .text_xs()
-                    .text_color(rgb(palette(cx).muted))
-                    .child(tr(cx, "Ctrl+1-5 or Ctrl+Tab switch views")),
-            )
             .into_any_element()
     }
 }
@@ -1697,6 +1810,7 @@ impl Render for Workspace {
             View::Account => self.account_view(cx),
             View::History => self.history(cx),
             View::Settings => self.settings_view(cx),
+            View::Help => self.help_view(cx),
         };
         div()
             .id("workspace")

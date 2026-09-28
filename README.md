@@ -62,7 +62,7 @@ Without `--baresip-log`, baresip logs nothing. Logs and SIP traces can contain p
 
 ## Usage
 
-Wide windows show the navigation as a sidebar, narrow ones at the top. `Ctrl+1` to `Ctrl+5` open Phone, Contacts, Account, History and Settings. `Ctrl+Tab` and `Ctrl+Shift+Tab` go forward and back. These shortcuts also work in text fields. Everything else uses the mouse. Only the Phone view takes keyboard input without a click first.
+Wide windows show the navigation as a sidebar, narrow ones at the top. The question mark icon at its end, or `F1`, opens a list of all keyboard shortcuts. `Ctrl+1` to `Ctrl+5` open Phone, Contacts, Account, History and Settings. `Ctrl+Tab` and `Ctrl+Shift+Tab` go forward and back. `Ctrl+F` jumps to the contact search. These shortcuts also work in text fields. Everything else uses the mouse. Only the Phone view takes keyboard input without a click first.
 
 - Phone: The dial pad follows the Android phone app. Typed characters go to the dial field, even after Esc. The green button dials, DND sits to its left, and backspace to its right deletes the last character. The volume control sits below.
 - Call screen: Every incoming or outgoing call switches the app to Phone. Incoming calls pause MPRIS players, show a desktop notification and raise the window. They show "Decline" on the left and "Answer" on the right. During a call there are Mute, Keypad, Hold, DND, hang up and the volume control. The open keypad sends clicked and typed digits, `*` and `#` as DTMF right away. Mute and Keypad are disabled while the call is on hold. In the other views a banner leads back to the call.
