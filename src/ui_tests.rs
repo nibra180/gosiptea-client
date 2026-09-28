@@ -355,6 +355,31 @@ fn settings_switch_live_and_persist_without_losing_input(cx: &mut TestAppContext
 }
 
 #[gpui::test]
+fn omarchy_theme_is_offered_only_with_a_colors_file_or_when_saved(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let store = Store::new(fixture.directory.path());
+    let missing = fixture.directory.path().join("missing.toml");
+    cx.update(|cx| cx.set_global(OmarchyTheme::new(Some(missing))));
+    let (workspace, cx) = fixture.open(cx);
+    workspace.update(cx, |this, cx| this.load_settings(store.clone(), cx));
+    show(cx, View::Settings);
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("theme-light").is_some());
+    assert!(cx.debug_bounds("theme-omarchy").is_none());
+    // A choice saved on an Omarchy system stays visible and selected.
+    store
+        .save_preferences(&Preferences {
+            language: Language::English,
+            theme: Theme::Omarchy,
+        })
+        .unwrap();
+    workspace.update(cx, |this, cx| this.load_settings(store, cx));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("theme-omarchy").is_some());
+    workspace.read_with(cx, |_, cx| assert_eq!(palette(cx).background, 0x2d2a2e));
+}
+
+#[gpui::test]
 fn omarchy_theme_follows_the_current_colors_file(cx: &mut TestAppContext) {
     let fixture = Fixture::new();
     let store = Store::new(fixture.directory.path());

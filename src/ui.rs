@@ -24,7 +24,7 @@ use crate::{
 };
 
 use crate::settings::{
-    Language, Preferences, Theme, palette, preferences, reload_omarchy_theme, tr,
+    Language, Preferences, Theme, omarchy_available, palette, preferences, reload_omarchy_theme, tr,
 };
 use crate::storage::Store;
 /// Five-percent steps on the wpctl scale.
@@ -296,6 +296,8 @@ impl Workspace {
 
     fn settings_view(&self, cx: &Context<Self>) -> AnyElement {
         let settings = preferences(cx);
+        // Without Omarchy the option would look like Dark; a saved choice stays visible.
+        let omarchy = omarchy_available(cx) || settings.theme == Theme::Omarchy;
         // Unlike column(), no full height, so the audio lists extend the scroll area.
         let mut pane = div()
             .flex()
@@ -343,15 +345,17 @@ impl Workspace {
                             ..settings
                         },
                     ),
-                    (
-                        "theme-omarchy",
-                        "Omarchy",
-                        Preferences {
-                            theme: Theme::Omarchy,
-                            ..settings
-                        },
-                    ),
-                ],
+                ]
+                .into_iter()
+                .chain(omarchy.then_some((
+                    "theme-omarchy",
+                    "Omarchy",
+                    Preferences {
+                        theme: Theme::Omarchy,
+                        ..settings
+                    },
+                )))
+                .collect(),
             ),
         ] {
             pane = pane

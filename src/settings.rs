@@ -1,4 +1,7 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use gpui::{App, Global};
 use serde::{Deserialize, Serialize};
@@ -100,6 +103,8 @@ pub fn palette(cx: &App) -> Palette {
 /// The active Omarchy theme, re-read from its colors.toml while selected.
 pub struct OmarchyTheme {
     path: Option<PathBuf>,
+    /// Whether colors.toml existed at start, so the theme can be offered.
+    available: bool,
     source: Option<String>,
     palette: Palette,
 }
@@ -109,6 +114,7 @@ impl Global for OmarchyTheme {}
 impl OmarchyTheme {
     pub fn new(path: Option<PathBuf>) -> Self {
         Self {
+            available: path.as_deref().is_some_and(Path::is_file),
             path,
             source: None,
             palette: DARK,
@@ -124,6 +130,12 @@ impl OmarchyTheme {
             .find(|path| path.is_file())
             .or_else(|| Some(home.join(".local/state/omarchy/current/theme/colors.toml")))
     }
+}
+
+/// Whether the Omarchy theme has a colors file to follow.
+pub fn omarchy_available(cx: &App) -> bool {
+    cx.try_global::<OmarchyTheme>()
+        .is_some_and(|theme| theme.available)
 }
 
 /// Re-reads the Omarchy colors and returns whether the palette changed.

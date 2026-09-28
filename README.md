@@ -76,7 +76,7 @@ In Textfeldern springt Tab zum nächsten Feld, Esc verlässt das Feld. Enter wä
 
 ### Design
 
-„Dark“ und „Light“ sind feste Monokai-Pro-Paletten. „Omarchy“ übernimmt die Farben aus `~/.local/state/omarchy/current/theme/colors.toml`, bei älteren Omarchy-Versionen aus `~/.config/omarchy/current/theme/`. Die App liest die Datei jede Sekunde neu, ein Wechsel mit `omarchy-theme-set` erscheint also ohne Neustart. Fehlt die Datei oder ein Farbwert, springt die passende feste Palette ein.
+„Dark“ und „Light“ sind feste Monokai-Pro-Paletten. „Omarchy“ übernimmt die Farben aus `~/.local/state/omarchy/current/theme/colors.toml`, bei älteren Omarchy-Versionen aus `~/.config/omarchy/current/theme/`. Den Button gibt es nur, wenn die Datei beim Start existiert oder „Omarchy“ schon gespeichert ist. Die App liest die Datei jede Sekunde neu, ein Wechsel mit `omarchy-theme-set` erscheint also ohne Neustart. Fehlt ein Farbwert, nimmt die App ihn aus Light, wenn die Datei `mode = "light"` setzt oder einen hellen Hintergrund hat, sonst aus Dark. Fehlt die Datei ganz, gilt Dark.
 
 ### Audio und Lautstärke
 
