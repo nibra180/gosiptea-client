@@ -211,7 +211,7 @@ fn show(cx: &mut VisualTestContext, view: View) {
     let index = View::ALL.iter().position(|v| *v == view).unwrap();
     click(
         cx,
-        ["view-0", "view-1", "view-2", "view-3", "view-4", "view-5"][index],
+        ["view-0", "view-1", "view-2", "view-3", "view-4"][index],
     );
 }
 
@@ -234,7 +234,7 @@ fn clicks_switch_views_and_typing_on_the_phone_view_goes_to_the_dial_field(
     assert_eq!(dial_state(cx), (View::Phone, String::new(), true));
     cx.simulate_input("23");
     assert_eq!(dial_state(cx), (View::Phone, "23".into(), true));
-    for view in [View::Contacts, View::Audio, View::Account, View::History] {
+    for view in [View::Contacts, View::Account, View::History, View::Settings] {
         show(cx, view);
         cx.simulate_keystrokes("1 2 3 4 5");
         cx.update(|window, cx| {
@@ -275,14 +275,14 @@ fn ctrl_digits_and_ctrl_tab_switch_views_even_from_text_fields(cx: &mut TestAppC
     assert_eq!(active(cx), View::Contacts);
     click(cx, "input-Search");
     cx.simulate_keystrokes("ctrl-tab");
-    assert_eq!(active(cx), View::Audio);
+    assert_eq!(active(cx), View::Account);
     cx.simulate_keystrokes("ctrl-shift-tab ctrl-shift-tab ctrl-shift-tab");
     assert_eq!(active(cx), View::Settings);
     cx.simulate_keystrokes("ctrl-tab");
     assert_eq!(active(cx), View::Phone);
-    cx.simulate_keystrokes("ctrl-6");
+    cx.simulate_keystrokes("ctrl-5");
     assert_eq!(active(cx), View::Settings);
-    cx.simulate_keystrokes("ctrl-1 ctrl-7 ctrl-0 ctrl-shift-3");
+    cx.simulate_keystrokes("ctrl-1 ctrl-6 ctrl-0 ctrl-shift-3");
     cx.update(|window, cx| {
         let this = workspace.read(cx);
         assert_eq!(this.active, View::Phone);
@@ -290,7 +290,7 @@ fn ctrl_digits_and_ctrl_tab_switch_views_even_from_text_fields(cx: &mut TestAppC
         assert!(this.search.read(cx).value().is_empty());
         assert!(this.dial.focus_handle(cx).is_focused(window));
     });
-    cx.simulate_keystrokes("ctrl-5");
+    cx.simulate_keystrokes("ctrl-4");
     assert_eq!(active(cx), View::History);
     fixture.event("CALL_INCOMING", "incoming-1", "sip:alice@example.com");
     fixture.settle(&workspace, cx);
@@ -386,10 +386,10 @@ fn settings_remain_reachable_in_compact_german_navigation(cx: &mut TestAppContex
     let (_, cx) = fixture.open(cx);
     cx.simulate_resize(gpui::size(px(540.), px(440.)));
     show(cx, View::Settings);
-    let english_width = cx.debug_bounds("view-5").unwrap().size.width;
+    let english_width = cx.debug_bounds("view-4").unwrap().size.width;
     click(cx, "language-de");
-    assert!(cx.debug_bounds("view-5").unwrap().size.width > english_width);
-    for selector in ["view-0", "view-1", "view-2", "view-3", "view-4", "view-5"] {
+    assert!(cx.debug_bounds("view-4").unwrap().size.width > english_width);
+    for selector in ["view-0", "view-1", "view-2", "view-3", "view-4"] {
         let bounds = cx.debug_bounds(selector).unwrap();
         assert!(bounds.left() >= px(0.) && bounds.right() <= px(540.));
         assert!(bounds.top() >= px(0.) && bounds.bottom() <= px(440.));
@@ -465,9 +465,9 @@ fn keys_outside_text_fields_trigger_nothing(cx: &mut TestAppContext) {
     show(cx, View::Contacts);
     cx.simulate_keystrokes("2 a s / d x down enter delete");
     unchanged(cx, View::Contacts);
-    show(cx, View::Audio);
+    show(cx, View::Settings);
     cx.simulate_keystrokes("3 tab down enter space left right - + =");
-    unchanged(cx, View::Audio);
+    unchanged(cx, View::Settings);
     workspace.read_with(cx, |this, _| {
         assert_eq!(this.audio_field, 0);
         assert_eq!(this.audio_cursors, [0, 0, 0]);
@@ -701,7 +701,7 @@ fn incoming_call_status_survives_every_view_and_quit_can_be_cancelled(cx: &mut T
     click(cx, "mute");
     click(cx, "dnd");
     fixture.settle(&workspace, cx);
-    for view in [View::Contacts, View::Audio, View::Account, View::History] {
+    for view in [View::Contacts, View::Account, View::History, View::Settings] {
         show(cx, view);
         workspace.read_with(cx, |this, _| {
             assert_eq!(this.snapshot.state.call_state, CallState::Active);
@@ -726,7 +726,7 @@ fn incoming_call_takes_over_the_screen_and_decline_rejects(cx: &mut TestAppConte
     });
     assert!(cx.debug_bounds("answer").is_some());
     assert!(cx.debug_bounds("mute").is_none());
-    show(cx, View::Audio);
+    show(cx, View::Settings);
     click(cx, "call-banner");
     workspace.read_with(cx, |this, _| assert_eq!(this.active, View::Phone));
     click(cx, "reject");
@@ -743,6 +743,10 @@ fn active_call_controls_hold_and_send_keypad_digits(cx: &mut TestAppContext) {
     click(cx, "answer");
     fixture.event("CALL_ESTABLISHED", "call-1", "sip:alice@example.com");
     fixture.settle(&workspace, cx);
+    // The volume control stays on the call screen.
+    click(cx, "volume-step-10");
+    fixture.settle(&workspace, cx);
+    assert_eq!(fixture.backend.lock().unwrap().volume_sets, [0.5]);
     click(cx, "keypad");
     for key in ["dtmf-5", "dtmf-#", "dtmf-0"] {
         click(cx, key);
@@ -821,7 +825,7 @@ fn outgoing_call_blocks_window_close_until_backend_reports_closed(cx: &mut TestA
 fn audio_click_selection_applies_each_list_and_survives_redisplay(cx: &mut TestAppContext) {
     let fixture = Fixture::new();
     let (workspace, cx) = fixture.open(cx);
-    show(cx, View::Audio);
+    show(cx, View::Settings);
     click(cx, "audio-option-2");
     fixture.settle(&workspace, cx);
     assert_eq!(fixture.commands("auplay"), ["pipewire,sink.headset"]);
@@ -847,7 +851,7 @@ fn audio_click_selection_applies_each_list_and_survives_redisplay(cx: &mut TestA
         assert_eq!(this.audio_cursors, [2, 1, 1]);
     });
     show(cx, View::Phone);
-    show(cx, View::Audio);
+    show(cx, View::Settings);
     workspace.read_with(cx, |this, _| assert_eq!(this.audio_cursors, [2, 1, 1]));
     fixture
         .backend
@@ -902,7 +906,7 @@ fn history_redials_selected_backend_call_and_opens_the_call_screen(cx: &mut Test
 fn audio_volume_clicks_change_the_output_without_a_call(cx: &mut TestAppContext) {
     let fixture = Fixture::new();
     let (workspace, cx) = fixture.open(cx);
-    show(cx, View::Audio);
+    show(cx, View::Phone);
     for step in ["volume-step-19", "volume-step-18", "volume-step-17"] {
         click(cx, step);
     }
@@ -928,7 +932,7 @@ fn audio_volume_is_unavailable_without_an_output_device(cx: &mut TestAppContext)
     fixture.backend.lock().unwrap().output_volume = None;
     let (workspace, cx) = fixture.open(cx);
     fixture.settle(&workspace, cx);
-    show(cx, View::Audio);
+    show(cx, View::Phone);
     click(cx, "volume-step-10");
     fixture.settle(&workspace, cx);
     workspace.read_with(cx, |this, _| assert_eq!(this.snapshot.output_volume, None));
@@ -955,7 +959,7 @@ fn audio_volume_ignores_snapshots_published_before_the_latest_click(cx: &mut Tes
             std::thread::sleep(Duration::from_millis(1));
         }
     };
-    show(cx, View::Audio);
+    show(cx, View::Phone);
     click(cx, "volume-step-19");
     wait_entered(1);
     click(cx, "volume-step-18");

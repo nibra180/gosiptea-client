@@ -30,6 +30,8 @@ use crate::storage::Store;
 /// Five-percent steps on the wpctl scale.
 const VOLUME_STEPS: i32 = 20;
 const VOLUME_HOLD: Duration = Duration::from_secs(1);
+/// The dial field and the volume control share this width, so their edges line up.
+const PHONE_COLUMN_WIDTH: f32 = 360.;
 /// Only the tail of a long DTMF sequence stays visible above the keypad.
 const MAX_DTMF_DISPLAY: usize = 24;
 const KEYPAD: [(char, &str); 12] = [
@@ -52,17 +54,15 @@ pub enum View {
     #[default]
     Phone,
     Contacts,
-    Audio,
     Account,
     History,
     Settings,
 }
 
 impl View {
-    const ALL: [Self; 6] = [
+    const ALL: [Self; 5] = [
         Self::Phone,
         Self::Contacts,
-        Self::Audio,
         Self::Account,
         Self::History,
         Self::Settings,
@@ -71,7 +71,6 @@ impl View {
         match self {
             Self::Phone => "Phone",
             Self::Contacts => "Contacts",
-            Self::Audio => "Audio",
             Self::Account => "Account",
             Self::History => "History",
             Self::Settings => "Settings",
@@ -244,6 +243,7 @@ impl Workspace {
         };
         this.sync_account(cx);
         this.sync_audio(cx, None);
+        this.dispatch(Action::WatchOutputVolume(true), cx);
         this.focus_default(window, cx);
         this
     }
@@ -296,7 +296,12 @@ impl Workspace {
 
     fn settings_view(&self, cx: &Context<Self>) -> AnyElement {
         let settings = preferences(cx);
-        let mut pane = column().child(heading(cx, "Settings"));
+        // Unlike column(), no full height, so the audio lists extend the scroll area.
+        let mut pane = div()
+            .flex()
+            .flex_col()
+            .gap_3()
+            .child(heading(cx, "Settings"));
         for (title, choices) in [
             (
                 "Language",
@@ -373,12 +378,13 @@ impl Workspace {
                     },
                 )));
         }
-        pane.child(
-            div()
-                .text_color(rgb(palette(cx).muted))
-                .child(tr(cx, "Changes are saved automatically.")),
-        )
-        .into_any_element()
+        pane.child(self.audio_devices(cx))
+            .child(
+                div()
+                    .text_color(rgb(palette(cx).muted))
+                    .child(tr(cx, "Changes are saved automatically.")),
+            )
+            .into_any_element()
     }
 
     fn sync_account(&mut self, cx: &mut Context<Self>) {
@@ -496,8 +502,9 @@ impl Workspace {
     }
 
     fn set_view(&mut self, view: View, cx: &mut Context<Self>) {
-        if (self.active == View::Audio) != (view == View::Audio) {
-            self.dispatch(Action::WatchOutputVolume(view == View::Audio), cx);
+        // The volume control sits on the phone view and polls only while it is shown.
+        if (self.active == View::Phone) != (view == View::Phone) {
+            self.dispatch(Action::WatchOutputVolume(view == View::Phone), cx);
         }
         self.active = view;
         if view == View::Account {
@@ -640,7 +647,7 @@ impl Workspace {
         );
     }
 
-    /// Ctrl+1 to Ctrl+6 and Ctrl+(Shift+)Tab switch views, also from text fields.
+    /// Ctrl+1 to Ctrl+5 and Ctrl+(Shift+)Tab switch views, also from text fields.
     /// Typing on the idle phone view goes to the dial field, even after Esc left it.
     /// During a call, typed digits go to an open keypad.
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
@@ -813,8 +820,10 @@ impl Workspace {
                     .child(
                         div()
                             .debug_selector(|| "input-Dial".into())
-                            .w_full()
-                            .max_w(px(360.))
+                            // A fixed width; with w_full and max_w the field took the
+                            // whole pane width once the volume row joined the view.
+                            .w(px(PHONE_COLUMN_WIDTH))
+                            .max_w_full()
                             .child(self.dial.clone()),
                     ),
             )
@@ -830,15 +839,17 @@ impl Workspace {
                             .update(cx, |input, cx| input.insert(&digit.to_string(), cx));
                     }))
                     // DND and backspace flank the call button like Android's dialer.
+                    // Equal slots keep the call button centred although only DND has a label.
                     .child(
                         div()
                             .flex()
                             .items_start()
-                            .gap(px(32.))
-                            .child(dnd)
+                            .gap_4()
+                            .child(div().flex().justify_center().w(px(88.)).child(dnd))
                             .child(call)
-                            .child(backspace),
-                    ),
+                            .child(div().flex().justify_center().w(px(88.)).child(backspace)),
+                    )
+                    .child(self.volume_control(cx)),
             )
             .into_any_element()
     }
@@ -930,7 +941,8 @@ impl Workspace {
                     .items_center()
                     .gap_10()
                     .child(middle)
-                    .child(actions),
+                    .child(actions)
+                    .child(self.volume_control(cx)),
             )
             .into_any_element()
     }
@@ -1202,23 +1214,25 @@ impl Workspace {
         .into_any_element()
     }
 
-    fn audio(&self, cx: &Context<Self>) -> AnyElement {
-        let mut pane = column().child(heading(cx, "Audio"));
+    fn audio_devices(&self, cx: &Context<Self>) -> AnyElement {
+        let mut pane = div()
+            .flex()
+            .flex_col()
+            .gap_3()
+            .child(div().child(tr(cx, "Audio")));
         if self.snapshot.ringtone_restart_required {
             pane = pane.child(div().text_color(rgb(palette(cx).warning)).child(tr(
                 cx,
                 "Restart GoSipTea to ring on the selected ringtone output.",
             )));
         }
-        pane = pane.child(self.volume_control(cx));
         for (field, title) in ["Output", "Input", "Ringtone"].into_iter().enumerate() {
             let selected = audio_selection(&self.snapshot, field);
             pane = pane.child(
                 div()
                     .flex()
                     .flex_col()
-                    .flex_1()
-                    .min_h(px(100.))
+                    .h(px(160.))
                     .border_1()
                     .border_color(rgb(palette(cx).border))
                     .rounded_sm()
@@ -1277,47 +1291,60 @@ impl Workspace {
 
     fn volume_control(&self, cx: &Context<Self>) -> impl IntoElement {
         let level = self.snapshot.output_volume.map(volume_steps).unwrap_or(0);
-        div().flex().flex_col().gap_1().child(
-            div()
-                .flex()
-                .items_center()
-                .gap_2()
-                .child(
-                    div()
-                        .w(px(150.))
-                        .flex_shrink_0()
-                        .child(tr(cx, "Output volume")),
-                )
-                .child(
-                    div()
-                        .id("volume-bar")
-                        .flex()
-                        .gap(px(2.))
-                        .children((1..=VOLUME_STEPS).map(|step| {
-                            div()
-                                .id(("volume-step", step as usize))
-                                .debug_selector(|| format!("volume-step-{step}"))
-                                .w(px(10.))
-                                .h(px(14.))
-                                .rounded_sm()
-                                .cursor_pointer()
-                                .bg(rgb(if step <= level {
-                                    palette(cx).accent
-                                } else {
-                                    palette(cx).border
-                                }))
-                                .on_click(cx.listener(move |this, _, window, cx| {
-                                    window.focus(&this.focus);
-                                    this.set_volume_steps(step, cx);
-                                }))
-                        })),
-                )
-                .child(if let Some(volume) = self.snapshot.output_volume {
-                    format!("{:>3}%", (volume * 100.0).round() as i32)
-                } else {
-                    tr(cx, "Unavailable").to_owned()
-                }),
-        )
+        let value = if let Some(volume) = self.snapshot.output_volume {
+            format!("{}%", (volume * 100.0).round() as i32)
+        } else {
+            tr(cx, "Unavailable").to_owned()
+        };
+        // The label matches the button captions. Bar and value span the dial field's width.
+        div()
+            .flex()
+            .flex_col()
+            .items_center()
+            .gap_2()
+            .w(px(PHONE_COLUMN_WIDTH))
+            .max_w_full()
+            .child(
+                div()
+                    .text_sm()
+                    .text_color(rgb(palette(cx).muted))
+                    .child(tr(cx, "Output volume")),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_3()
+                    .w_full()
+                    .child(
+                        div()
+                            .id("volume-bar")
+                            .flex()
+                            .flex_1()
+                            .min_w_0()
+                            .gap(px(2.))
+                            .children((1..=VOLUME_STEPS).map(|step| {
+                                div()
+                                    .id(("volume-step", step as usize))
+                                    .debug_selector(|| format!("volume-step-{step}"))
+                                    .flex_1()
+                                    .min_w_0()
+                                    .h(px(14.))
+                                    .rounded_sm()
+                                    .cursor_pointer()
+                                    .bg(rgb(if step <= level {
+                                        palette(cx).accent
+                                    } else {
+                                        palette(cx).border
+                                    }))
+                                    .on_click(cx.listener(move |this, _, window, cx| {
+                                        window.focus(&this.focus);
+                                        this.set_volume_steps(step, cx);
+                                    }))
+                            })),
+                    )
+                    .child(div().flex_shrink_0().whitespace_nowrap().child(value)),
+            )
     }
 
     fn set_volume_steps(&mut self, steps: i32, cx: &mut Context<Self>) {
@@ -1556,7 +1583,7 @@ impl Workspace {
                     .py_1()
                     .text_xs()
                     .text_color(rgb(palette(cx).muted))
-                    .child(tr(cx, "Ctrl+1-6 or Ctrl+Tab switch views")),
+                    .child(tr(cx, "Ctrl+1-5 or Ctrl+Tab switch views")),
             )
             .into_any_element()
     }
@@ -1581,7 +1608,6 @@ impl Render for Workspace {
         let body = match self.active {
             View::Phone => self.phone(cx),
             View::Contacts => self.contacts_view(cx),
-            View::Audio => self.audio(cx),
             View::Account => self.account_view(cx),
             View::History => self.history(cx),
             View::Settings => self.settings_view(cx),
@@ -2037,12 +2063,10 @@ mod tests {
         );
     }
     #[test]
-    fn navigation_matches_original_order() {
+    fn navigation_order() {
         assert_eq!(
             View::ALL.map(View::name),
-            [
-                "Phone", "Contacts", "Audio", "Account", "History", "Settings"
-            ]
+            ["Phone", "Contacts", "Account", "History", "Settings"]
         );
     }
 }

@@ -102,7 +102,7 @@ try:
                     y = monitor["y"] + round((monitor["height"] / monitor["scale"] - height) / 2)
                     dispatch("movewindowpixel", f"exact {x} {y},{selector}")
                     time.sleep(0.5)
-                    screens = [(1, "incoming")] if incoming else [(1, "phone"), (2, "contacts"), (3, "audio"), (4, "account"), (5, "history"), (6, "settings")]
+                    screens = [(1, "incoming")] if incoming else [(1, "phone"), (2, "contacts"), (3, "account"), (4, "history"), (5, "settings")]
                     for key, screen in screens:
                         dispatch("sendshortcut", f"CTRL,{key},{selector}")
                         capture(client, f"{viewport}-{screen}.png")

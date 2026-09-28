@@ -2,6 +2,20 @@
 
 Rust-/GPUI-Port von GoSipTea für das aktuelle Omarchy-System. Das Projekt ist eigenständig und benötigt weder den Go-Quellbaum noch das Go-Binary.
 
+## Showcase
+
+Die Telefonansicht im breiten Fenster mit Seitenleiste. Alle Aufnahmen zeigen erfundene Demo-Daten.
+
+[![Telefonansicht mit Wähltastenfeld und seitlicher Navigation](docs/screenshots/desktop-phone.png)](docs/screenshots/desktop-phone.png)
+
+In schmalen Fenstern wandert die Navigation nach oben:
+
+| Kontakte | Eingehender Anruf |
+| --- | --- |
+| [![Kontaktliste im kompakten Layout](docs/screenshots/compact-contacts.png)](docs/screenshots/compact-contacts.png) | [![Eingehender Demo-Anruf im kompakten Layout](docs/screenshots/compact-incoming.png)](docs/screenshots/compact-incoming.png) |
+
+[Alle Ansichten in beiden Fenstergrößen](docs/screenshots/README.md) · [Screenshots als ZIP](docs/demo-screenshots.zip)
+
 ## Bauen und starten
 
 Benötigt werden Rust ab Version 1.88, Cargo, ein Vulkan-fähiger Grafiktreiber, baresip mit `ctrl_dbus` und PipeWire, `wpctl`, `notify-send` und ein Session-D-Bus. GPUI benötigt außerdem die Linux-Entwicklungsbibliotheken für Wayland, X11 und xkbcommon. `Cargo.lock` hält die geprüften Abhängigkeiten fest, darunter GPUI 0.2.2.
@@ -38,17 +52,16 @@ Nur für die Entwicklung: `cargo build --locked` erzeugt den unoptimierten Build
 
 ## Bedienung
 
-Die fünf Ansichten, ihre Reihenfolge und die Statuszeile entsprechen der TUI. Deren Buchstaben-Kürzel gibt es hier nicht, die Buttons tragen deshalb keine Tastenhinweise. Breite Fenster zeigen eine Seitenleiste, schmale Fenster eine obere Navigationszeile. GPUI verwendet Entities, Actions, Fokus und Subscriptions wie Zed; hinzugefügte Editor-, Dock- oder Telefoniefunktionen gibt es nicht.
+Ansichten, Reihenfolge und Statuszeile folgen der TUI. Nur die Audio-Ansicht fehlt, ihre Geräteauswahl liegt in Settings und der Lautstärkeregler in Phone. Die Buchstaben-Kürzel der TUI gibt es hier nicht, die Buttons tragen deshalb keine Tastenhinweise. Breite Fenster zeigen eine Seitenleiste, schmale Fenster eine obere Navigationszeile. GPUI verwendet Entities, Actions, Fokus und Subscriptions wie Zed; hinzugefügte Editor-, Dock- oder Telefoniefunktionen gibt es nicht.
 
-Die Ansicht wechselt per Klick in der Navigation oder per Tastatur. `Ctrl+1` bis `Ctrl+5` öffnen Phone, Contacts, Audio, Account und History, `Ctrl+Tab` und `Ctrl+Shift+Tab` blättern vor und zurück. Die Kürzel funktionieren auch in Textfeldern. Weitere Kürzel gibt es nicht, alles andere läuft über die Maus. Nur in der Phone-Ansicht wirkt die Tastatur ohne vorherigen Klick. Ohne Anruf landet jede Eingabe im Dial-Feld, im Gespräch gehen Ziffern an das offene Keypad.
+Die Ansicht wechselt per Klick in der Navigation oder per Tastatur. `Ctrl+1` bis `Ctrl+5` öffnen Phone, Contacts, Account, History und Settings, `Ctrl+Tab` und `Ctrl+Shift+Tab` blättern vor und zurück. Die Kürzel funktionieren auch in Textfeldern. Weitere Kürzel gibt es nicht, alles andere läuft über die Maus. Nur in der Phone-Ansicht wirkt die Tastatur ohne vorherigen Klick. Ohne Anruf landet jede Eingabe im Dial-Feld, im Gespräch gehen Ziffern an das offene Keypad.
 
-- Phone: Das Dial-Feld hat beim Öffnen den Fokus, man kann also sofort tippen. Auch nach Esc landet die nächste Taste wieder im Feld. Darunter liegt ein Wähltastenfeld wie in der Android-Telefon-App. Der grüne Button wählt die Nummer. Ist das Feld leer, setzt er den Cursor hinein. Links davon schaltet DND um, rechts löscht Backspace das letzte Zeichen.
-- Anrufbildschirm: Geht ein Anruf ein oder beginnt ein ausgehender, wechselt die App auf Phone. Der Aufbau folgt der Android-Telefon-App. Oben stehen Status, Initialen, Name und Nummer, unten die runden Buttons. Ein eingehender Anruf hat „Decline“ links und „Answer“ rechts. Im Gespräch gibt es Mute, Keypad, Hold, DND und Auflegen. Das Keypad sendet jede Ziffer sofort als DTMF. Das gilt für angeklickte Tasten und, solange das Keypad offen ist, auch für Ziffern, `*` und `#` von der Tastatur. Andere Tasten haben im Gespräch keine Wirkung. Während Hold sind Mute und Keypad gesperrt. In den anderen Ansichten führt ein Banner über dem Inhalt zurück zum Gespräch.
+- Phone: Das Dial-Feld hat beim Öffnen den Fokus, man kann also sofort tippen. Auch nach Esc landet die nächste Taste wieder im Feld. Darunter liegt ein Wähltastenfeld wie in der Android-Telefon-App. Der grüne Button wählt die Nummer. Ist das Feld leer, setzt er den Cursor hinein. Links davon schaltet DND um, rechts löscht Backspace das letzte Zeichen. Unter diesen drei Buttons sitzt der Lautstärkeregler. Ein Klick darauf setzt die Lautstärke in 5-%-Schritten.
+- Anrufbildschirm: Geht ein Anruf ein oder beginnt ein ausgehender, wechselt die App auf Phone. Der Aufbau folgt der Android-Telefon-App. Oben stehen Status, Initialen, Name und Nummer, unten die runden Buttons. Ein eingehender Anruf hat „Decline“ links und „Answer“ rechts. Im Gespräch gibt es Mute, Keypad, Hold, DND und Auflegen, darunter wieder den Lautstärkeregler. Das Keypad sendet jede Ziffer sofort als DTMF. Das gilt für angeklickte Tasten und, solange das Keypad offen ist, auch für Ziffern, `*` und `#` von der Tastatur. Andere Tasten haben im Gespräch keine Wirkung. Während Hold sind Mute und Keypad gesperrt. In den anderen Ansichten führt ein Banner über dem Inhalt zurück zum Gespräch.
 - Contacts: Ein Klick wählt einen Eintrag aus. Rechts stehen Icons zum Anrufen und Löschen. „Add“ öffnet das Formular.
-- Audio: Ein Klick auf einen Eintrag übernimmt das Gerät. Ein Klick auf den Regler setzt die Lautstärke in 5-%-Schritten.
 - Account: In die Felder klicken, „TLS and SRTP“ umschalten, mit „Save account“ speichern. Ein leeres Passwort behält das gespeicherte.
 - History: Ein Klick wählt einen Anruf aus, „Dial“ ruft erneut an.
-- Settings: Sprache und Design. „Dark“ und „Light“ sind feste Monokai-Pro-Paletten. „Omarchy“ übernimmt die Farben aus `~/.local/state/omarchy/current/theme/colors.toml`. Ältere Omarchy-Versionen legen die Datei unter `~/.config/omarchy/current/theme/` ab, auch dort sucht die App. Die Datei wird jede Sekunde neu gelesen, ein Themewechsel mit `omarchy-theme-set` erscheint also ohne Neustart. Fehlt die Datei oder ein Farbwert, springt die passende feste Palette ein.
+- Settings: Sprache, Design und Audiogeräte. „Dark“ und „Light“ sind feste Monokai-Pro-Paletten. „Omarchy“ übernimmt die Farben aus `~/.local/state/omarchy/current/theme/colors.toml`. Ältere Omarchy-Versionen legen die Datei unter `~/.config/omarchy/current/theme/` ab, auch dort sucht die App. Die Datei wird jede Sekunde neu gelesen, ein Themewechsel mit `omarchy-theme-set` erscheint also ohne Neustart. Fehlt die Datei oder ein Farbwert, springt die passende feste Palette ein. Darunter stehen die Listen für Output, Input und Ringtone. Ein Klick auf einen Eintrag übernimmt das Gerät.
 - Beenden geht über das Schließen des Fensters. Während eines Gesprächs fragt die App vorher nach.
 
 In Textfeldern gelten die üblichen Eingabetasten. Enter wählt im Dial-Feld und speichert im Adressfeld eines neuen Kontakts, Tab springt zum nächsten Feld, Esc verlässt das Feld.
@@ -65,7 +78,7 @@ In Textfeldern gelten die üblichen Eingabetasten. Enter wählt im Dial-Feld und
 
 Der Umfang bleibt auf ein Konto und ein gleichzeitiges Gespräch begrenzt. Ein abweichender Klingelausgang wird wie im Original erst nach einem Neustart wirksam. Der Verlauf enthält maximal 200 Versuche in `gosiptea-call-history.json`. Eingehende Anrufe pausieren MPRIS-Player, benachrichtigen den Desktop und fokussieren das Fenster. Globale Tastenkürzel und Benachrichtigungsaktionen bleiben ausgeschlossen.
 
-Der Lautstärkeregler ist die einzige Funktion, die das Original nicht hat. Er steuert die Systemlautstärke des in Audio gewählten Ausgabegeräts, auch ohne laufenden Anruf. Steht dort „System default“, folgt er dem aktuellen Standard-Ausgabegerät. Änderungen am Systemregler erscheinen in der Audioansicht innerhalb etwa einer Sekunde. Weil die Gerätelautstärke für alle Programme gilt, ändert der Regler auch deren Lautstärke auf diesem Gerät. Bei „Same as output“ betrifft das ebenso den Klingelton; ein separat gewähltes Klingelgerät behält seine eigene Lautstärke. Das Mikrofon hat keinen Regler.
+Der Lautstärkeregler ist die einzige Funktion, die das Original nicht hat. Er steuert die Systemlautstärke des in Settings gewählten Ausgabegeräts, auch ohne laufenden Anruf. Steht dort „System default“, folgt er dem aktuellen Standard-Ausgabegerät. Änderungen am Systemregler erscheinen in der Phone-Ansicht innerhalb etwa einer Sekunde. Weil die Gerätelautstärke für alle Programme gilt, ändert der Regler auch deren Lautstärke auf diesem Gerät. Bei „Same as output“ betrifft das ebenso den Klingelton; ein separat gewähltes Klingelgerät behält seine eigene Lautstärke. Das Mikrofon hat keinen Regler.
 
 ## Prüfungen
 

@@ -229,7 +229,7 @@ pub fn tr<'a>(cx: &App, text: &'a str) -> &'a str {
         "Dark" => "Dunkel",
         "Light" => "Hell",
         "Changes are saved automatically." => "Änderungen werden automatisch gespeichert.",
-        "Ctrl+1-6 or Ctrl+Tab switch views" => "Strg+1-6 oder Strg+Tab wechselt die Ansicht",
+        "Ctrl+1-5 or Ctrl+Tab switch views" => "Strg+1-5 oder Strg+Tab wechselt die Ansicht",
         "Phone" => "Telefon",
         "Contacts" => "Kontakte",
         "Audio" => "Audio",
