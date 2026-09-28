@@ -271,7 +271,6 @@ pub fn tr<'a>(cx: &App, text: &'a str) -> &'a str {
         }
         "Save contact" => "Kontakt speichern",
         "Cancel" => "Abbrechen",
-        "Search" => "Suchen",
         "Add" => "Hinzufügen",
         "Dial" => "Anrufen",
         "No matching contacts." => "Keine passenden Kontakte.",
@@ -293,7 +292,6 @@ pub fn tr<'a>(cx: &App, text: &'a str) -> &'a str {
         "[x] TLS and SRTP" => "[x] TLS und SRTP",
         "[ ] TLS and SRTP" => "[ ] TLS und SRTP",
         "Save account" => "Konto speichern",
-        "Call history" => "Anrufverlauf",
         "No calls yet." => "Noch keine Anrufe.",
         "Error" => "Fehler",
         "Muted" => "Stummgeschaltet",

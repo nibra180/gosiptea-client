@@ -306,11 +306,7 @@ impl Workspace {
         // Without Omarchy the option would look like Dark; a saved choice stays visible.
         let omarchy = omarchy_available(cx) || settings.theme == Theme::Omarchy;
         // Unlike column(), no full height, so the audio lists extend the scroll area.
-        let mut pane = div()
-            .flex()
-            .flex_col()
-            .gap_3()
-            .child(heading(cx, "Settings"));
+        let mut pane = div().flex().flex_col().gap_3();
         for (title, choices) in [
             (
                 "Language",
@@ -1130,8 +1126,11 @@ impl Workspace {
         let empty = contacts.is_empty();
         let mut pane =
             column()
-                .child(heading(cx, "Contacts"))
-                .child(input_row(cx, "Search", self.search.clone()))
+                .child(
+                    div()
+                        .debug_selector(|| "input-Search".into())
+                        .child(self.search.clone()),
+                )
                 .child(div().flex().gap_2().mt_2().child(
                     button(cx, "add-contact", tr(cx, "Add"), palette(cx).accent).on_click(
                         cx.listener(|this, _, window, cx| this.begin_contact(window, cx)),
@@ -1449,7 +1448,7 @@ impl Workspace {
     }
 
     fn account_view(&self, cx: &Context<Self>) -> AnyElement {
-        let mut pane = column().child(heading(cx, "Account"));
+        let mut pane = column();
         for (i, label) in ["Server", "User", "Domain", "Login", "Password"]
             .into_iter()
             .enumerate()
@@ -1519,7 +1518,7 @@ impl Workspace {
     }
 
     fn history(&self, cx: &Context<Self>) -> AnyElement {
-        let mut pane = column().child(heading(cx, "Call history"));
+        let mut pane = column();
         if self.snapshot.history.is_empty() {
             pane = pane.child(
                 div()
