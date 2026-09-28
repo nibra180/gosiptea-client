@@ -1,0 +1,42 @@
+# Monokai Pro, default filter. Palette from https://monokai.pro
+#
+# Monokai Pro has no distinct blue, so cyan fills the blue slot. The bright
+# variants are intentionally identical to the base accents: the original theme
+# keeps one shade per hue.
+
+mode = "dark"
+theme_type = "dark"
+
+accent = "#ff6188"
+selection = "#403e41"
+selection_foreground = "#fcfcfa"
+selection_background = "#403e41"
+muted = "#727072"
+
+background = "#2d2a2e"
+dark_background = "#221f22"
+darker_background = "#19181a"
+lighter_background = "#403e41"
+
+foreground = "#fcfcfa"
+dark_foreground = "#727072"
+light_foreground = "#c1c0c0"
+bright_foreground = "#fcfcfa"
+
+red = "#ff6188"
+yellow = "#ffd866"
+orange = "#fc9867"
+green = "#a9dc76"
+cyan = "#78dce8"
+blue = "#78dce8"
+magenta = "#ab9df2"
+brown = "#7d5a50"
+
+bright_red = "#ff6188"
+bright_yellow = "#ffd866"
+bright_green = "#a9dc76"
+bright_cyan = "#78dce8"
+bright_blue = "#78dce8"
+bright_magenta = "#ab9df2"
+
+hyprland_active_border = "rgba(ff6188ff) rgba(fc9867ff) rgba(ffd866ff) 90deg"

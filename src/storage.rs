@@ -1034,6 +1034,13 @@ mod tests {
                     theme: Theme::Light,
                 },
             ),
+            (
+                r#"{"theme":"omarchy"}"#,
+                Preferences {
+                    language: Language::English,
+                    theme: Theme::Omarchy,
+                },
+            ),
         ] {
             fixture(&store, &path, data, 0o600);
             assert_eq!(store.load_preferences().unwrap(), expected);
@@ -1066,7 +1073,7 @@ mod tests {
         let (_temp, store) = store();
         let path = store.paths.dir.join("gosiptea-settings.json");
         for language in [Language::English, Language::German] {
-            for theme in [Theme::Dark, Theme::Light] {
+            for theme in [Theme::Dark, Theme::Light, Theme::Omarchy] {
                 let preferences = Preferences { language, theme };
                 store.save_preferences(&preferences).unwrap();
                 assert_eq!(
@@ -1084,10 +1091,10 @@ mod tests {
                 );
                 assert_eq!(
                     json["theme"],
-                    if theme == Theme::Dark {
-                        "dark"
-                    } else {
-                        "light"
+                    match theme {
+                        Theme::Dark => "dark",
+                        Theme::Light => "light",
+                        Theme::Omarchy => "omarchy",
                     }
                 );
                 assert_eq!(mode(&path), 0o600);

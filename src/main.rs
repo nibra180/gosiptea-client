@@ -15,6 +15,7 @@ use gosiptea_client::{
     assets::Assets,
     input,
     session::{Config, SessionHandle, Snapshot},
+    settings::OmarchyTheme,
     storage,
     ui::Workspace,
 };
@@ -108,6 +109,7 @@ fn run() -> Result<()> {
         let app = Application::new().with_assets(Assets);
         app.run(move |cx: &mut App| {
             input::init(cx);
+            cx.set_global(OmarchyTheme::new(OmarchyTheme::default_path()));
             cx.on_window_closed(|cx| {
                 if cx.windows().is_empty() {
                     cx.quit();

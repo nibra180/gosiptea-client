@@ -48,6 +48,7 @@ Die Ansicht wechselt per Klick in der Navigation oder per Tastatur. `Ctrl+1` bis
 - Audio: Ein Klick auf einen Eintrag übernimmt das Gerät. Ein Klick auf den Regler setzt die Lautstärke in 5-%-Schritten.
 - Account: In die Felder klicken, „TLS and SRTP“ umschalten, mit „Save account“ speichern. Ein leeres Passwort behält das gespeicherte.
 - History: Ein Klick wählt einen Anruf aus, „Dial“ ruft erneut an.
+- Settings: Sprache und Design. „Dark“ und „Light“ sind feste Monokai-Pro-Paletten. „Omarchy“ übernimmt die Farben aus `~/.local/state/omarchy/current/theme/colors.toml`. Ältere Omarchy-Versionen legen die Datei unter `~/.config/omarchy/current/theme/` ab, auch dort sucht die App. Die Datei wird jede Sekunde neu gelesen, ein Themewechsel mit `omarchy-theme-set` erscheint also ohne Neustart. Fehlt die Datei oder ein Farbwert, springt die passende feste Palette ein.
 - Beenden geht über das Schließen des Fensters. Während eines Gesprächs fragt die App vorher nach.
 
 In Textfeldern gelten die üblichen Eingabetasten. Enter wählt im Dial-Feld und speichert im Adressfeld eines neuen Kontakts, Tab springt zum nächsten Feld, Esc verlässt das Feld.

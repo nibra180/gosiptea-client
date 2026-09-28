@@ -23,7 +23,9 @@ use crate::{
     storage::{AccountCredentials, MAX_CONTACT_NAME, MAX_FIELD_LENGTH},
 };
 
-use crate::settings::{Language, Preferences, Theme, palette, preferences, tr};
+use crate::settings::{
+    Language, Preferences, Theme, palette, preferences, reload_omarchy_theme, tr,
+};
 use crate::storage::Store;
 /// Five-percent steps on the wpctl scale.
 const VOLUME_STEPS: i32 = 20;
@@ -190,11 +192,14 @@ impl Workspace {
             .unwrap_or(true)
         });
         let poll = cx.spawn(async move |this, cx| {
-            loop {
+            for tick in 1u32.. {
                 Timer::after(Duration::from_millis(100)).await;
                 if this
                     .update(cx, |this, cx| {
                         this.refresh(cx);
+                        if tick % 10 == 0 {
+                            this.reload_omarchy(cx);
+                        }
                         if interrupted.load(Ordering::Relaxed) || !this.snapshot.running {
                             cx.quit();
                         }
@@ -252,7 +257,14 @@ impl Workspace {
             Err(error) => self.settings_error = format!("{error:#}"),
         }
         self.settings_store = Some(store);
+        self.reload_omarchy(cx);
         self.refresh_settings(cx);
+    }
+
+    fn reload_omarchy(&self, cx: &mut Context<Self>) {
+        if preferences(cx).theme == Theme::Omarchy && reload_omarchy_theme(cx) {
+            self.refresh_settings(cx);
+        }
     }
 
     fn refresh_settings(&self, cx: &mut Context<Self>) {
@@ -272,6 +284,7 @@ impl Workspace {
 
     fn change_settings(&mut self, settings: Preferences, cx: &mut Context<Self>) {
         cx.set_global(settings);
+        self.reload_omarchy(cx);
         self.settings_error = self
             .settings_store
             .as_ref()
@@ -287,7 +300,7 @@ impl Workspace {
         for (title, choices) in [
             (
                 "Language",
-                [
+                vec![
                     (
                         "language-en",
                         "English",
@@ -308,7 +321,7 @@ impl Workspace {
             ),
             (
                 "Theme",
-                [
+                vec![
                     (
                         "theme-dark",
                         "Dark",
@@ -322,6 +335,14 @@ impl Workspace {
                         "Light",
                         Preferences {
                             theme: Theme::Light,
+                            ..settings
+                        },
+                    ),
+                    (
+                        "theme-omarchy",
+                        "Omarchy",
+                        Preferences {
+                            theme: Theme::Omarchy,
                             ..settings
                         },
                     ),

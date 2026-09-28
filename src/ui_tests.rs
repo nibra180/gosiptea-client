@@ -12,6 +12,7 @@ use tempfile::TempDir;
 use crate::{
     platform::{Backend, BackendEvent, Node},
     session::Config,
+    settings::OmarchyTheme,
     storage::Store,
 };
 
@@ -351,6 +352,32 @@ fn settings_switch_live_and_persist_without_losing_input(cx: &mut TestAppContext
     workspace.read_with(cx, |_, cx| {
         assert_eq!(preferences(cx).language, Language::German)
     });
+}
+
+#[gpui::test]
+fn omarchy_theme_follows_the_current_colors_file(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let store = Store::new(fixture.directory.path());
+    let colors = fixture.directory.path().join("colors.toml");
+    std::fs::write(&colors, "background = \"#123456\"\naccent = \"#abcdef\"\n").unwrap();
+    cx.update(|cx| cx.set_global(OmarchyTheme::new(Some(colors.clone()))));
+    let (workspace, cx) = fixture.open(cx);
+    workspace.update(cx, |this, cx| this.load_settings(store.clone(), cx));
+    show(cx, View::Settings);
+    click(cx, "theme-omarchy");
+    workspace.read_with(cx, |_, cx| {
+        assert_eq!(preferences(cx).theme, Theme::Omarchy);
+        assert_eq!(palette(cx).background, 0x123456);
+        assert_eq!(palette(cx).accent, 0xabcdef);
+    });
+    assert_eq!(store.load_preferences().unwrap().theme, Theme::Omarchy);
+    std::fs::write(&colors, "background = \"#654321\"\n").unwrap();
+    // The poll loop does this once per second; it does not run under the test platform.
+    workspace.update(cx, |this, cx| this.reload_omarchy(cx));
+    cx.run_until_parked();
+    workspace.read_with(cx, |_, cx| assert_eq!(palette(cx).background, 0x654321));
+    click(cx, "theme-dark");
+    workspace.read_with(cx, |_, cx| assert_eq!(palette(cx).background, 0x2d2a2e));
 }
 
 #[gpui::test]
