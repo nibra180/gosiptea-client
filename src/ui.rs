@@ -1,4 +1,6 @@
 use std::{
+    cell::Cell,
+    rc::Rc,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -8,9 +10,10 @@ use std::{
 
 use chrono::{DateTime, Datelike, Local, Utc};
 use gpui::{
-    AnyElement, App, Context, Div, Entity, FocusHandle, Focusable, KeyDownEvent, Keystroke,
-    ScrollHandle, SharedString, Stateful, Subscription, Svg, Task, Timer, Window, div, img,
-    prelude::*, px, rgb, rgba, svg,
+    AnyElement, App, Bounds, Context, Div, Empty, Entity, FocusHandle, Focusable, KeyDownEvent,
+    Keystroke, MouseButton, Pixels, ScrollHandle, SharedString, Stateful, Subscription, Svg, Task,
+    Timer, Window, canvas, div, img, linear_color_stop, linear_gradient, prelude::*, px, relative,
+    rgb, rgba, svg,
 };
 
 use crate::{
@@ -30,6 +33,7 @@ use crate::storage::Store;
 /// Five-percent steps on the wpctl scale.
 const VOLUME_STEPS: i32 = 20;
 const VOLUME_HOLD: Duration = Duration::from_secs(1);
+const VOLUME_KNOB: f32 = 16.;
 /// The dial field and the volume control share this width, so their edges line up.
 const PHONE_COLUMN_WIDTH: f32 = 360.;
 /// Only the tail of a long DTMF sequence stays visible above the keypad.
@@ -115,6 +119,8 @@ pub struct Workspace {
     focus_pending: bool,
     quit_pending: bool,
     volume_request: Option<(f32, Instant)>,
+    /// Painted slider bounds; a click maps its x position onto the volume.
+    volume_bounds: Rc<Cell<Bounds<Pixels>>>,
     dispatch_error: String,
     _subscriptions: Vec<Subscription>,
     _poll: Task<()>,
@@ -237,6 +243,7 @@ impl Workspace {
             focus_pending: false,
             quit_pending: false,
             volume_request: None,
+            volume_bounds: Rc::default(),
             dispatch_error: String::new(),
             _subscriptions: subscriptions,
             _poll: poll,
@@ -1294,13 +1301,18 @@ impl Workspace {
     }
 
     fn volume_control(&self, cx: &Context<Self>) -> impl IntoElement {
-        let level = self.snapshot.output_volume.map(volume_steps).unwrap_or(0);
+        let fraction = self
+            .snapshot
+            .output_volume
+            .map_or(0.0, |v| v.clamp(0.0, 1.0));
         let value = if let Some(volume) = self.snapshot.output_volume {
             format!("{}%", (volume * 100.0).round() as i32)
         } else {
             tr(cx, "Unavailable").to_owned()
         };
-        // The label matches the button captions. Bar and value span the dial field's width.
+        let colors = palette(cx);
+        let bounds = self.volume_bounds.clone();
+        // The label matches the button captions. Slider and value span the dial field's width.
         div()
             .flex()
             .flex_col()
@@ -1311,7 +1323,7 @@ impl Workspace {
             .child(
                 div()
                     .text_sm()
-                    .text_color(rgb(palette(cx).muted))
+                    .text_color(rgb(colors.muted))
                     .child(tr(cx, "Output volume")),
             )
             .child(
@@ -1321,31 +1333,102 @@ impl Workspace {
                     .gap_3()
                     .w_full()
                     .child(
+                        // The margin keeps the knob inside the column at 0 and 100 %.
                         div()
-                            .id("volume-bar")
+                            .id("volume-slider")
+                            .debug_selector(|| "volume-slider".into())
+                            .relative()
                             .flex()
+                            .items_center()
                             .flex_1()
                             .min_w_0()
-                            .gap(px(2.))
-                            .children((1..=VOLUME_STEPS).map(|step| {
+                            .mx(px(VOLUME_KNOB / 2.))
+                            .h(px(VOLUME_KNOB + 4.))
+                            .cursor_pointer()
+                            .child(
+                                canvas(move |b, _, _| bounds.set(b), |_, _, _, _| {})
+                                    .absolute()
+                                    .size_full(),
+                            )
+                            .child(
+                                // Green to yellow to red over the whole track; the grey
+                                // cover hides the part above the current level.
                                 div()
-                                    .id(("volume-step", step as usize))
-                                    .debug_selector(|| format!("volume-step-{step}"))
-                                    .flex_1()
-                                    .min_w_0()
-                                    .h(px(14.))
-                                    .rounded_sm()
-                                    .cursor_pointer()
-                                    .bg(rgb(if step <= level {
-                                        palette(cx).accent
-                                    } else {
-                                        palette(cx).border
-                                    }))
-                                    .on_click(cx.listener(move |this, _, window, cx| {
-                                        window.focus(&this.focus);
-                                        this.set_volume_steps(step, cx);
-                                    }))
-                            })),
+                                    .relative()
+                                    .w_full()
+                                    .h(px(8.))
+                                    .child(
+                                        div()
+                                            .absolute()
+                                            .left_0()
+                                            .w(relative(0.5))
+                                            .h_full()
+                                            .rounded_l_full()
+                                            .bg(linear_gradient(
+                                                90.,
+                                                linear_color_stop(rgb(colors.good), 0.),
+                                                linear_color_stop(rgb(colors.warning), 1.),
+                                            )),
+                                    )
+                                    .child(
+                                        div()
+                                            .absolute()
+                                            .left(relative(0.5))
+                                            .w(relative(0.5))
+                                            .h_full()
+                                            .rounded_r_full()
+                                            .bg(linear_gradient(
+                                                90.,
+                                                linear_color_stop(rgb(colors.warning), 0.),
+                                                linear_color_stop(rgb(colors.error), 1.),
+                                            )),
+                                    )
+                                    .child(
+                                        div()
+                                            .absolute()
+                                            .right_0()
+                                            .w(relative(1. - fraction))
+                                            .h_full()
+                                            .rounded_r_full()
+                                            .when(fraction == 0., |d| d.rounded_l_full())
+                                            .bg(rgb(colors.border)),
+                                    ),
+                            )
+                            .when(self.snapshot.output_volume.is_some(), |d| {
+                                d.child(
+                                    div()
+                                        .absolute()
+                                        .left(relative(fraction))
+                                        .ml(px(-VOLUME_KNOB / 2.))
+                                        .size(px(VOLUME_KNOB))
+                                        .rounded_full()
+                                        .bg(rgb(colors.text))
+                                        .border_2()
+                                        .border_color(rgb(colors.background)),
+                                )
+                            })
+                            .on_mouse_down(
+                                MouseButton::Left,
+                                cx.listener(|this, event: &gpui::MouseDownEvent, window, cx| {
+                                    window.focus(&this.focus);
+                                    let bounds = this.volume_bounds.get();
+                                    this.set_volume_steps(
+                                        slider_steps(bounds, event.position.x),
+                                        cx,
+                                    );
+                                }),
+                            )
+                            .on_drag(VolumeDrag, |_, _, _, cx| cx.new(|_| VolumeDrag))
+                            .on_drag_move(cx.listener(
+                                |this, event: &gpui::DragMoveEvent<VolumeDrag>, _, cx| {
+                                    let steps = slider_steps(event.bounds, event.event.position.x);
+                                    // Dragging within one step must not spawn another wpctl call.
+                                    if this.snapshot.output_volume.map(volume_steps) != Some(steps)
+                                    {
+                                        this.set_volume_steps(steps, cx);
+                                    }
+                                },
+                            )),
                     )
                     .child(div().flex_shrink_0().whitespace_nowrap().child(value)),
             )
@@ -1886,6 +1969,22 @@ fn row(cx: &App, id: (&'static str, usize), selected: bool) -> Stateful<Div> {
 }
 fn volume_steps(volume: f32) -> i32 {
     (volume.clamp(0.0, 1.0) * VOLUME_STEPS as f32).round() as i32
+}
+fn slider_steps(bounds: Bounds<Pixels>, x: Pixels) -> i32 {
+    let width = f32::from(bounds.size.width);
+    if width <= 0. {
+        return 0;
+    }
+    volume_steps(f32::from(x - bounds.origin.x) / width)
+}
+
+/// Drag payload of the volume slider; it renders nothing under the cursor.
+struct VolumeDrag;
+
+impl Render for VolumeDrag {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        Empty
+    }
 }
 
 fn audio_field(index: usize) -> AudioField {

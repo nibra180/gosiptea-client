@@ -206,6 +206,17 @@ fn click(cx: &mut VisualTestContext, selector: &'static str) {
     cx.run_until_parked();
 }
 
+/// Clicks the volume slider at the position of the given five-percent step.
+fn set_volume(cx: &mut VisualTestContext, step: i32) {
+    cx.run_until_parked();
+    let bounds = cx
+        .debug_bounds("volume-slider")
+        .expect("volume-slider is not rendered");
+    let x = bounds.origin.x + bounds.size.width * (step as f32 / 20.);
+    cx.simulate_click(gpui::point(x, bounds.center().y), gpui::Modifiers::none());
+    cx.run_until_parked();
+}
+
 /// Opens a view through the navigation, the only way to switch views.
 fn show(cx: &mut VisualTestContext, view: View) {
     let index = View::ALL.iter().position(|v| *v == view).unwrap();
@@ -769,7 +780,7 @@ fn active_call_controls_hold_and_send_keypad_digits(cx: &mut TestAppContext) {
     fixture.event("CALL_ESTABLISHED", "call-1", "sip:alice@example.com");
     fixture.settle(&workspace, cx);
     // The volume control stays on the call screen.
-    click(cx, "volume-step-10");
+    set_volume(cx, 10);
     fixture.settle(&workspace, cx);
     assert_eq!(fixture.backend.lock().unwrap().volume_sets, [0.5]);
     click(cx, "keypad");
@@ -932,8 +943,8 @@ fn audio_volume_clicks_change_the_output_without_a_call(cx: &mut TestAppContext)
     let fixture = Fixture::new();
     let (workspace, cx) = fixture.open(cx);
     show(cx, View::Phone);
-    for step in ["volume-step-19", "volume-step-18", "volume-step-17"] {
-        click(cx, step);
+    for step in [19, 18, 17] {
+        set_volume(cx, step);
     }
     fixture.settle(&workspace, cx);
     workspace.read_with(cx, |this, _| {
@@ -943,12 +954,35 @@ fn audio_volume_clicks_change_the_output_without_a_call(cx: &mut TestAppContext)
         fixture.backend.lock().unwrap().volume_sets,
         [0.95, 0.9, 0.85]
     );
-    click(cx, "volume-step-18");
+    set_volume(cx, 18);
     fixture.settle(&workspace, cx);
     assert_eq!(
         fixture.backend.lock().unwrap().volume_sets.last(),
         Some(&0.9)
     );
+}
+
+#[gpui::test]
+fn audio_volume_follows_a_drag_in_whole_steps(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let (workspace, cx) = fixture.open(cx);
+    show(cx, View::Phone);
+    let bounds = cx.debug_bounds("volume-slider").unwrap();
+    let at = |step: f32| {
+        gpui::point(
+            bounds.origin.x + bounds.size.width * (step / 20.),
+            bounds.center().y,
+        )
+    };
+    let none = gpui::Modifiers::none();
+    cx.simulate_mouse_down(at(10.), gpui::MouseButton::Left, none);
+    // Moves within one step, and past the right edge, send one request each.
+    for step in [10.2, 12., 12.3, 25.] {
+        cx.simulate_mouse_move(at(step), gpui::MouseButton::Left, none);
+    }
+    cx.simulate_mouse_up(at(25.), gpui::MouseButton::Left, none);
+    fixture.settle(&workspace, cx);
+    assert_eq!(fixture.backend.lock().unwrap().volume_sets, [0.5, 0.6, 1.0]);
 }
 
 #[gpui::test]
@@ -958,7 +992,7 @@ fn audio_volume_is_unavailable_without_an_output_device(cx: &mut TestAppContext)
     let (workspace, cx) = fixture.open(cx);
     fixture.settle(&workspace, cx);
     show(cx, View::Phone);
-    click(cx, "volume-step-10");
+    set_volume(cx, 10);
     fixture.settle(&workspace, cx);
     workspace.read_with(cx, |this, _| assert_eq!(this.snapshot.output_volume, None));
     assert!(fixture.backend.lock().unwrap().volume_sets.is_empty());
@@ -985,9 +1019,9 @@ fn audio_volume_ignores_snapshots_published_before_the_latest_click(cx: &mut Tes
         }
     };
     show(cx, View::Phone);
-    click(cx, "volume-step-19");
+    set_volume(cx, 19);
     wait_entered(1);
-    click(cx, "volume-step-18");
+    set_volume(cx, 18);
     // The worker now publishes 95 % and blocks on the queued 90 % request.
     gate.permits.store(1, Ordering::SeqCst);
     wait_entered(2);
@@ -996,7 +1030,7 @@ fn audio_volume_ignores_snapshots_published_before_the_latest_click(cx: &mut Tes
     workspace.read_with(cx, |this, _| {
         assert_eq!(this.snapshot.output_volume, Some(0.9))
     });
-    click(cx, "volume-step-17");
+    set_volume(cx, 17);
     gate.permits.store(usize::MAX, Ordering::SeqCst);
     fixture.settle(&workspace, cx);
     assert_eq!(
