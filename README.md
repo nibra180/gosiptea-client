@@ -1,123 +1,123 @@
 # GoSipTea client
 
-GoSipTea ist ein SIP-Softphone für den Linux-Desktop. Dieses Projekt portiert das Terminal-Programm GoSipTea nach Rust und GPUI, zugeschnitten auf Omarchy mit Hyprland. Die App startet einen eigenen baresip-Prozess und steuert ihn über D-Bus. Go-Quellbaum und Go-Binary braucht sie nicht.
+GoSipTea is a SIP softphone for the Linux desktop. This project ports the GoSipTea terminal app to Rust and GPUI, built for Omarchy on Hyprland. The app starts its own baresip process and controls it over D-Bus. It needs neither the Go source tree nor the Go binary.
 
 ## Showcase
 
-Die Aufnahmen zeigen erfundene Demo-Daten.
+The screenshots show made-up demo data with the German UI.
 
-[![Telefonansicht mit Wähltastenfeld und seitlicher Navigation](docs/screenshots/desktop-phone.png)](docs/screenshots/desktop-phone.png)
+[![Phone view with dial pad and sidebar navigation](docs/screenshots/desktop-phone.png)](docs/screenshots/desktop-phone.png)
 
-In schmalen Fenstern liegt die Navigation oben:
+In narrow windows the navigation moves to the top:
 
-| Kontakte | Eingehender Anruf |
+| Contacts | Incoming call |
 | --- | --- |
-| [![Kontaktliste im kompakten Layout](docs/screenshots/compact-contacts.png)](docs/screenshots/compact-contacts.png) | [![Eingehender Demo-Anruf im kompakten Layout](docs/screenshots/compact-incoming.png)](docs/screenshots/compact-incoming.png) |
+| [![Contact list in the compact layout](docs/screenshots/compact-contacts.png)](docs/screenshots/compact-contacts.png) | [![Incoming demo call in the compact layout](docs/screenshots/compact-incoming.png)](docs/screenshots/compact-incoming.png) |
 
-[Alle Ansichten in beiden Fenstergrößen](docs/screenshots/README.md) · [Screenshots als ZIP](docs/demo-screenshots.zip)
+[All views in both window sizes](docs/screenshots/README.md) · [Screenshots as ZIP](docs/demo-screenshots.zip)
 
-## Voraussetzungen
+## Requirements
 
-- Rust ab Version 1.88 und Cargo
-- ein Vulkan-fähiger Grafiktreiber
-- baresip mit `ctrl_dbus`, PipeWire und `wpctl`
-- `notify-send` und ein Session-D-Bus
-- für GPUI die Entwicklungsbibliotheken für Wayland, X11 und xkbcommon
+- Rust 1.88 or newer and Cargo
+- a graphics driver with Vulkan support
+- baresip with `ctrl_dbus`, PipeWire and `wpctl`
+- `notify-send` and a session D-Bus
+- for GPUI, the development libraries for Wayland, X11 and xkbcommon
 
-`Cargo.lock` legt die geprüften Abhängigkeiten fest, darunter GPUI 0.2.2.
+`Cargo.lock` pins the tested dependencies, including GPUI 0.2.2.
 
-## Bauen und installieren
+## Build and install
 
 ```sh
 make build
 ./target/release/gosiptea-client
 ```
 
-`make install` baut den Release-Build und legt Binary und Desktop-Eintrag unter `~/.local` ab. `PREFIX` ändert diesen Pfad. `make update` macht dasselbe. Eine laufende Instanz bleibt dabei unangetastet und nutzt den neuen Build ab dem nächsten Start. Eine vorhandene Go-Installation bleibt bestehen.
+`make install` builds the release binary and installs it with a desktop entry under `~/.local`. `PREFIX` changes that path. `make update` does the same. A running instance keeps running and picks up the new build on its next start. An existing Go installation stays in place.
 
-Für die Entwicklung baut `cargo build --locked` nach `target/debug`. Dieser Build wird nicht installiert.
+For development, `cargo build --locked` builds into `target/debug`. That build is not installed.
 
-## Starten
+## Running
 
-Die App liest ihre Konfiguration aus `~/.baresip`. Besitzt schon ein anderer Prozess `com.github.Baresip` auf dem D-Bus, startet sie nicht. Einen fremden baresip-Dienst stoppt oder verändert sie nie.
+The app reads its configuration from `~/.baresip`. If another process already owns `com.github.Baresip` on the D-Bus, it does not start. It never stops or changes a baresip service it did not start.
 
-Zum Ausprobieren ohne echtes Konto dienen ein temporäres Verzeichnis und ein eigener D-Bus:
+To try it without a real account, use a temporary directory and a private D-Bus:
 
 ```sh
 test_dir=$(mktemp -d)
 dbus-run-session -- ./target/release/gosiptea-client --config-dir "$test_dir"
 ```
 
-Dort keine echten Zugangsdaten eintragen. baresip legt darin eventuell Beispielkontakte an. Das Verzeichnis danach selbst löschen.
+Don't enter real credentials there. baresip may create sample contacts in it. Delete the directory yourself afterwards.
 
-Die Optionen des Originals funktionieren mit einfachem und doppeltem Bindestrich:
+The original's options work with one or two leading dashes:
 
 - `--config-dir PATH`
 - `--baresip PATH`
-- `--country-code CODE`, standardmäßig `49`
+- `--country-code CODE`, default `49`
 - `--baresip-log PATH`
-- `--sip-trace`, nur zusammen mit `--baresip-log`
+- `--sip-trace`, only together with `--baresip-log`
 
-Ohne `--baresip-log` schreibt baresip nichts mit. Logs und SIP-Traces können Rufnummern und Zugangsdaten enthalten.
+Without `--baresip-log`, baresip logs nothing. Logs and SIP traces can contain phone numbers and credentials.
 
-## Bedienung
+## Usage
 
-Breite Fenster zeigen die Navigation als Seitenleiste, schmale oben. `Ctrl+1` bis `Ctrl+5` öffnen Phone, Contacts, Account, History und Settings. `Ctrl+Tab` und `Ctrl+Shift+Tab` blättern vor und zurück. Diese Kürzel wirken auch in Textfeldern, alles andere läuft über die Maus. Nur die Phone-Ansicht nimmt Tastatureingaben ohne vorherigen Klick an.
+Wide windows show the navigation as a sidebar, narrow ones at the top. `Ctrl+1` to `Ctrl+5` open Phone, Contacts, Account, History and Settings. `Ctrl+Tab` and `Ctrl+Shift+Tab` go forward and back. These shortcuts also work in text fields. Everything else uses the mouse. Only the Phone view takes keyboard input without a click first.
 
-- Phone: Das Wähltastenfeld folgt der Android-Telefon-App. Getippte Zeichen landen im Dial-Feld, auch nach Esc. Der grüne Button wählt, links davon schaltet DND, rechts löscht Backspace das letzte Zeichen. Darunter liegt der Lautstärkeregler.
-- Anrufbildschirm: Bei jedem eingehenden oder ausgehenden Anruf wechselt die App auf Phone. Eingehende Anrufe pausieren MPRIS-Player, zeigen eine Desktop-Benachrichtigung und holen das Fenster nach vorn. Sie haben „Decline“ links und „Answer“ rechts. Im Gespräch gibt es Mute, Keypad, Hold, DND, Auflegen und den Lautstärkeregler. Das offene Keypad sendet angeklickte und getippte Ziffern, `*` und `#` sofort als DTMF. Während Hold sind Mute und Keypad gesperrt. In den anderen Ansichten führt ein Banner zurück zum Gespräch.
-- Contacts: Ein Klick wählt einen Eintrag aus. Die Icons rechts rufen an oder löschen. „Add“ öffnet das Formular.
-- Account: Felder ausfüllen, „TLS and SRTP“ umschalten, mit „Save account“ speichern. Ein leeres Passwort behält das gespeicherte.
-- History: Ein Klick wählt einen Anruf aus, „Dial“ ruft erneut an.
-- Settings: Sprache, Design und Audiogeräte. Änderungen gelten sofort und werden gespeichert. Details zu Design und Lautstärke stehen unten.
-- Beenden: Fenster schließen. Während eines Gesprächs fragt die App vorher nach.
+- Phone: The dial pad follows the Android phone app. Typed characters go to the dial field, even after Esc. The green button dials, DND sits to its left, and backspace to its right deletes the last character. The volume control sits below.
+- Call screen: Every incoming or outgoing call switches the app to Phone. Incoming calls pause MPRIS players, show a desktop notification and raise the window. They show "Decline" on the left and "Answer" on the right. During a call there are Mute, Keypad, Hold, DND, hang up and the volume control. The open keypad sends clicked and typed digits, `*` and `#` as DTMF right away. Mute and Keypad are disabled while the call is on hold. In the other views a banner leads back to the call.
+- Contacts: A click selects an entry. The icons on the right call or delete it. "Add" opens the form.
+- Account: Fill in the fields, toggle "TLS and SRTP" and save with "Save account". An empty password keeps the stored one.
+- History: A click selects a call, "Dial" calls again.
+- Settings: Language, theme and audio devices. Changes apply at once and are saved. Theme and volume are described below.
+- Quit: Close the window. During a call the app asks first.
 
-In Textfeldern springt Tab zum nächsten Feld, Esc verlässt das Feld. Enter wählt im Dial-Feld und speichert im Adressfeld eines neuen Kontakts.
+In text fields, Tab moves to the next field and Esc leaves the field. Enter dials in the dial field and saves in the address field of a new contact.
 
-### Design
+### Theme
 
-„Dark“ und „Light“ sind feste Monokai-Pro-Paletten. „Omarchy“ übernimmt die Farben aus `~/.local/state/omarchy/current/theme/colors.toml`, bei älteren Omarchy-Versionen aus `~/.config/omarchy/current/theme/`. Den Button gibt es nur, wenn die Datei beim Start existiert oder „Omarchy“ schon gespeichert ist. Die App liest die Datei jede Sekunde neu, ein Wechsel mit `omarchy-theme-set` erscheint also ohne Neustart. Fehlt ein Farbwert, nimmt die App ihn aus Light, wenn die Datei `mode = "light"` setzt oder einen hellen Hintergrund hat, sonst aus Dark. Fehlt die Datei ganz, gilt Dark.
+"Dark" and "Light" are fixed Monokai Pro palettes. "Omarchy" takes its colors from `~/.local/state/omarchy/current/theme/colors.toml`, or from `~/.config/omarchy/current/theme/` on older Omarchy releases. The button only appears if that file exists at start or "Omarchy" is already saved. The app rereads the file every second, so switching with `omarchy-theme-set` shows up without a restart. A missing color comes from Light if the file sets `mode = "light"` or has a light background, and from Dark otherwise. Without the file, the app uses Dark.
 
-### Audio und Lautstärke
+### Audio and volume
 
-In Settings stehen die Listen für Output, Input und Ringtone. Ein Klick übernimmt das Gerät. Ein eigenes Klingelgerät wirkt wie im Original erst nach einem Neustart.
+Settings lists the devices for Output, Input and Ringtone. A click selects a device. As in the original, a separate ringtone device takes effect only after a restart.
 
-Der Lautstärkeregler ist die einzige Funktion, die das Original nicht hat. Ein Klick setzt die Systemlautstärke des gewählten Ausgabegeräts in 5-%-Schritten, auch ohne Anruf. Bei „System default“ gilt das aktuelle Standardgerät. Änderungen am Systemregler zeigt die App nach etwa einer Sekunde an. Die Lautstärke gilt für das ganze Gerät, also auch für andere Programme darauf. Bei „Same as output“ betrifft sie auch den Klingelton. Ein eigenes Klingelgerät und das Mikrofon regelt sie nicht.
+The volume control is the only feature the original lacks. A click sets the system volume of the selected output device in 5 % steps, with or without a call. With "System default" it controls the current default device. Changes made with the system control show up within about a second. The volume applies to the whole device, so it also changes other programs on it. With "Same as output" it also affects the ringtone. It doesn't control a separate ringtone device or the microphone.
 
-### Grenzen
+### Limits
 
-Die App verwaltet ein Konto und ein Gespräch gleichzeitig. Der Verlauf speichert höchstens 200 Anrufe in `gosiptea-call-history.json`. Globale Tastenkürzel, Aktionen in Benachrichtigungen und die Buchstaben-Kürzel der TUI gibt es nicht.
+The app handles one account and one call at a time. The history keeps at most 200 calls in `gosiptea-call-history.json`. There are no global shortcuts, no notification actions and none of the TUI's letter shortcuts.
 
-## Architektur
+## Architecture
 
-- `src/domain.rs`: Anrufzustände, Registrierung, Kontaktabgleich, Normalisierung und Textbegrenzung ohne Seiteneffekte.
-- `src/storage.rs`: kompatible baresip-Dateien, restriktive Rechte, atomare Schreibvorgänge und Erstkonfiguration.
-- `src/platform.rs`: eigener baresip-Prozess, verifizierte D-Bus-Verbindung, PipeWire, MPRIS, Benachrichtigungen und Hyprland-Fokus.
-- `src/session.rs`: Ein Worker arbeitet Aktionen und Ereignisse nacheinander ab. Die Oberfläche bekommt kopierte Snapshots ohne gespeichertes Passwort.
-- `src/ui.rs`: GPUI-Workspace mit Navigation, Inhaltsbereich, Statuszeile und Beenden-Dialog.
-- `src/settings.rs`: Sprache, Übersetzungen und Farbpaletten.
-- `src/input.rs`: begrenzte Unicode-Eingabe mit IME, Auswahl, Zwischenablage und Passwortmaskierung.
-- `src/assets.rs`: ins Binary eingebettete Icons.
+- `src/domain.rs`: call states, registration, contact matching, normalization and text limits, free of side effects.
+- `src/storage.rs`: compatible baresip files, restrictive permissions, atomic writes and first-run setup.
+- `src/platform.rs`: the app's own baresip process, a verified D-Bus connection, PipeWire, MPRIS, notifications and Hyprland focus.
+- `src/session.rs`: a worker handles actions and events one at a time. The UI gets copied snapshots without the stored password.
+- `src/ui.rs`: GPUI workspace with navigation, content area, status bar and quit dialog.
+- `src/settings.rs`: language, translations and color palettes.
+- `src/input.rs`: length-limited Unicode input with IME, selection, clipboard and password masking.
+- `src/assets.rs`: icons embedded in the binary.
 
-## Prüfungen
+## Checks
 
 ```sh
 make check
 ```
 
-`make check` prüft Formatierung, Tests und Clippy. Die Tests nutzen temporäre Dateien, simulierte SIP-Ereignisse und private D-Busse, nie ein echtes SIP-Konto. Die GPUI-Interaktionstests laufen auf der Testplattform von GPUI.
+`make check` runs the formatter check, the tests and Clippy. The tests use temporary files, simulated SIP events and private D-Buses, never a real SIP account. The GPUI interaction tests run on GPUI's test platform.
 
-`make smoke` öffnet den Release-Build als echtes Fenster auf dem laufenden Hyprland-Desktop, mit temporärer Konfiguration und privatem D-Bus. Der Test prüft den baresip-Eigentümer, das fehlende SIP-Konto und ob der eigene baresip-Prozess sauber endet. `make check` führt ihn nicht aus.
+`make smoke` opens the release build as a real window on the running Hyprland desktop, with a temporary configuration and a private D-Bus. It checks the baresip owner, the missing SIP account and that the app's own baresip process exits cleanly. `make check` doesn't run it.
 
-Ein echter Anruf über SIP-Server und Gegenstelle bleibt ein manueller Test.
+A real call through a SIP server to another party remains a manual test.
 
-Die Demo-Screenshots erstellt `scripts/capture-demo.py` neu, Details stehen in [docs/screenshots/README.md](docs/screenshots/README.md).
+`scripts/capture-demo.py` recreates the demo screenshots, see [docs/screenshots/README.md](docs/screenshots/README.md).
 
-## Referenzen und Lizenz
+## References and license
 
-- Das ursprüngliche GoSipTea liegt unverändert im benachbarten Projekt.
-- [Zed](https://github.com/zed-industries/zed), vor allem Workspace-Aufbau und GPUI-Entity-Modell.
-- [GPUI](https://gpui.rs/) und das Eingabebeispiel der Version 0.2.2.
-- [Material Symbols](https://github.com/google/material-design-icons) für die Icons.
+- The original GoSipTea, unchanged in the neighboring project.
+- [Zed](https://github.com/zed-industries/zed), mainly its workspace layout and GPUI entity model.
+- [GPUI](https://gpui.rs/) and the input example from version 0.2.2.
+- [Material Symbols](https://github.com/google/material-design-icons) for the icons.
 
-Die MIT-Lizenz des Ursprungsprojekts steht in `LICENSE`. `src/input.rs` enthält den Herkunftshinweis und die Apache-2.0-Lizenz des verwendeten GPUI-Beispiels. Die Icons unter `assets/icons` stehen ebenfalls unter Apache 2.0, die Lizenz liegt in `assets/icons/LICENSE`.
+The original project's MIT license is in `LICENSE`. `src/input.rs` contains the attribution and the Apache 2.0 license of the GPUI example it is based on. The icons in `assets/icons` are also under Apache 2.0, with the license in `assets/icons/LICENSE`.

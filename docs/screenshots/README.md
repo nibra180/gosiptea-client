@@ -1,28 +1,28 @@
-# Demo-Screenshots
+# Demo screenshots
 
-12 native Aufnahmen der Anwendung mit erfundenen Daten, deutscher Oberfläche und dunklem Design.
+12 native captures of the app with made-up data, the German UI and the dark theme.
 
-- Desktop: Fenster mit 1100 × 760 Pixeln, Screenshot mit 1180 × 840 Pixeln, Navigation in der Seitenleiste.
-- Kompakt: Fenster mit 600 × 800 Pixeln, Screenshot mit 680 × 880 Pixeln, Navigation oben.
-- Rundum 40 Pixel Abstand mit dem echten Fensterrahmen und einem Ausschnitt des Wallpapers.
-- Konto, Kontakte, Geräte, Registrierung und Anrufe sind simuliert. Das Demo-Backend startet kein baresip und liest keine persönlichen Kontodaten.
+- Desktop: 1100 × 760 pixel window, 1180 × 840 pixel screenshot, navigation in the sidebar.
+- Compact: 600 × 800 pixel window, 680 × 880 pixel screenshot, navigation at the top.
+- A 40 pixel margin on every side shows the real window border and part of the wallpaper.
+- Account, contacts, devices, registration and calls are simulated. The demo backend starts no baresip and reads no personal account data.
 
-| Ansicht | Desktop | Kompakt |
+| View | Desktop | Compact |
 | --- | --- | --- |
-| Telefon | [![Telefon, Desktop](desktop-phone.png)](desktop-phone.png) | [![Telefon, kompakt](compact-phone.png)](compact-phone.png) |
-| Kontakte | [![Kontakte, Desktop](desktop-contacts.png)](desktop-contacts.png) | [![Kontakte, kompakt](compact-contacts.png)](compact-contacts.png) |
-| Konto | [![Konto, Desktop](desktop-account.png)](desktop-account.png) | [![Konto, kompakt](compact-account.png)](compact-account.png) |
-| Anrufverlauf | [![Anrufverlauf, Desktop](desktop-history.png)](desktop-history.png) | [![Anrufverlauf, kompakt](compact-history.png)](compact-history.png) |
-| Einstellungen | [![Einstellungen, Desktop](desktop-settings.png)](desktop-settings.png) | [![Einstellungen, kompakt](compact-settings.png)](compact-settings.png) |
-| Eingehender Anruf | [![Eingehender Anruf, Desktop](desktop-incoming.png)](desktop-incoming.png) | [![Eingehender Anruf, kompakt](compact-incoming.png)](compact-incoming.png) |
+| Phone | [![Phone, desktop](desktop-phone.png)](desktop-phone.png) | [![Phone, compact](compact-phone.png)](compact-phone.png) |
+| Contacts | [![Contacts, desktop](desktop-contacts.png)](desktop-contacts.png) | [![Contacts, compact](compact-contacts.png)](compact-contacts.png) |
+| Account | [![Account, desktop](desktop-account.png)](desktop-account.png) | [![Account, compact](compact-account.png)](compact-account.png) |
+| History | [![History, desktop](desktop-history.png)](desktop-history.png) | [![History, compact](compact-history.png)](compact-history.png) |
+| Settings | [![Settings, desktop](desktop-settings.png)](desktop-settings.png) | [![Settings, compact](compact-settings.png)](compact-settings.png) |
+| Incoming call | [![Incoming call, desktop](desktop-incoming.png)](desktop-incoming.png) | [![Incoming call, compact](compact-incoming.png)](compact-incoming.png) |
 
-## Aufnahmen erneut erstellen
+## Recreating the screenshots
 
-Aus dem Projektverzeichnis in einer laufenden Hyprland-Sitzung mit `grim`:
+Run this from the project directory in a running Hyprland session with `grim`:
 
 ```sh
 cargo build --locked --example demo_screenshots
 python3 scripts/capture-demo.py
 ```
 
-Das Skript öffnet ein separates Demo-Fenster auf einem freien Workspace, setzt ausschließlich dieses Fenster auf deckende Darstellung und beendet es nach den Aufnahmen. Anschließend kehrt es zum vorherigen Workspace zurück. Die Demo verwendet ein temporäres Konfigurationsverzeichnis. Die Fenstersteuerung nutzt die Lua-Dispatcher von Hyprland.
+The script opens a separate demo window on a free workspace and makes only that window opaque. It closes the window after the captures and returns to the previous workspace. The demo uses a temporary configuration directory. Window control goes through Hyprland's Lua dispatchers.
