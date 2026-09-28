@@ -1,6 +1,6 @@
 # Demo screenshots
 
-12 native captures of the app with made-up data, the German UI and the dark theme.
+12 native captures of the app with made-up data, the English UI and the dark theme.
 
 - Desktop: 1100 × 760 pixel window, 1180 × 840 pixel screenshot, navigation in the sidebar.
 - Compact: 600 × 800 pixel window, 680 × 880 pixel screenshot, navigation at the top.

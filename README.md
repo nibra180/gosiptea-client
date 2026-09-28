@@ -4,7 +4,7 @@ GoSipTea is a SIP softphone for the Linux desktop. This project ports the GoSipT
 
 ## Showcase
 
-The screenshots show made-up demo data with the German UI.
+The screenshots show made-up demo data.
 
 [![Phone view with dial pad and sidebar navigation](docs/screenshots/desktop-phone.png)](docs/screenshots/desktop-phone.png)
 

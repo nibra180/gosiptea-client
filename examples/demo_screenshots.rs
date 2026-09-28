@@ -46,19 +46,19 @@ impl Backend for DemoBackend {
         Ok(vec![
             Node {
                 name: "demo.speakers".into(),
-                description: "Desktop-Lautsprecher".into(),
+                description: "Desktop speakers".into(),
                 kind: NodeKind::Output,
                 is_default: true,
             },
             Node {
                 name: "demo.headset".into(),
-                description: "USB-Headset".into(),
+                description: "USB headset".into(),
                 kind: NodeKind::Output,
                 is_default: false,
             },
             Node {
                 name: "demo.microphone".into(),
-                description: "USB-Mikrofon".into(),
+                description: "USB microphone".into(),
                 kind: NodeKind::Input,
                 is_default: true,
             },
@@ -94,7 +94,7 @@ fn main() -> Result<()> {
         secure: Some(true),
     })?;
     store.save_preferences(&Preferences {
-        language: Language::German,
+        language: Language::English,
         theme: Theme::Dark,
     })?;
     let contacts = [
@@ -102,7 +102,7 @@ fn main() -> Result<()> {
         ("Jonas Weber", "202"),
         ("Lena Fischer", "203"),
         ("Noah Berger", "205"),
-        ("Empfang", "200"),
+        ("Reception", "200"),
         ("Support", "210"),
     ];
     for (name, extension) in contacts {
