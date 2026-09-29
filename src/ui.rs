@@ -1663,6 +1663,7 @@ impl Workspace {
                 .overflow_y_scroll()
                 .track_scroll(&self.history_scroll)
                 .children(self.snapshot.history.iter().enumerate().map(|(i, call)| {
+                    let target = call.target.clone();
                     let peer = if call.peer.is_empty() {
                         &call.target
                     } else {
@@ -1677,6 +1678,7 @@ impl Workspace {
                         .child(
                             div()
                                 .flex_1()
+                                .min_w_0()
                                 .truncate()
                                 .child(domain::clamp_text(peer, domain::MAX_PEER_DISPLAY_LENGTH)),
                         )
@@ -1686,6 +1688,18 @@ impl Workspace {
                                 .w(px(148.))
                                 .text_color(rgb(palette(cx).muted))
                                 .child(history_time(cx, call.ended_at, self.snapshot.now)),
+                        )
+                        .child(
+                            icon_button(
+                                format!("history-dial-{i}").into(),
+                                "icons/call.svg",
+                                palette(cx).good,
+                            )
+                            .on_click(cx.listener(
+                                move |this, _, _, cx| {
+                                    this.dispatch(Action::Dial(target.clone()), cx)
+                                },
+                            )),
                         )
                         .on_click(cx.listener(move |this, _, window, cx| {
                             this.history_cursor = i;
