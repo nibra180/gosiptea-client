@@ -16,7 +16,7 @@ use gpui::{
 };
 use sippy::{
     assets::Assets,
-    input,
+    baresip, input,
     session::{Config, SessionHandle, Snapshot},
     settings::OmarchyTheme,
     storage,
@@ -30,6 +30,8 @@ struct Options {
     config_dir: Option<PathBuf>,
     #[arg(long, default_value = "baresip")]
     baresip: PathBuf,
+    #[arg(long, help = "baresip module directory for a newly created config")]
+    baresip_modules: Option<PathBuf>,
     #[arg(
         long,
         default_value = "49",
@@ -66,6 +68,7 @@ fn run() -> Result<()> {
         if [
             "-config-dir",
             "-baresip",
+            "-baresip-modules",
             "-country-code",
             "-baresip-log",
             "-sip-trace",
@@ -85,10 +88,29 @@ fn run() -> Result<()> {
         )
         .join(".baresip"),
     };
-    storage::ensure_config(&directory)?;
+    let baresip_path = baresip::locate(&options.baresip)?;
+    if let Some(warning) = baresip::check_version(baresip::probe_version(&baresip_path)?)? {
+        eprintln!("sippy: warning: {warning}");
+    }
+    let module_dir = options.baresip_modules.as_deref();
+    let created = storage::ensure_config(&directory, || {
+        baresip::config_defaults(&baresip_path, module_dir)
+    })?;
+    if !created && module_dir.is_some() {
+        eprintln!(
+            "sippy: warning: --baresip-modules only applies to a new config; the existing config keeps its module_path"
+        );
+    }
     let settings_store = storage::Store::new(directory.clone());
+    let warnings = baresip::check_config(&settings_store.paths().config, || {
+        let candidates = baresip::module_dir_candidates(&baresip_path);
+        baresip::find_module_dir(&candidates, &storage::default_modules()).ok()
+    })?;
+    for warning in warnings {
+        eprintln!("sippy: warning: {warning}");
+    }
     let mut config = Config::new(directory);
-    config.baresip_path = options.baresip;
+    config.baresip_path = baresip_path;
     config.country_calling_code = options.country_code;
     config.log_path = options.baresip_log;
     config.sip_trace = options.sip_trace;

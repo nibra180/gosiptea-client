@@ -3,9 +3,7 @@
 poll_method             epoll
 
 # SIP
-sip_cafile              /etc/ssl/certs/ca-certificates.crt
-sip_capath              /etc/ssl/certs
-sip_verify_server       yes
+{{CA_LINES}}sip_verify_server       yes
 call_local_timeout      120
 call_max_calls          1
 call_accept             no
@@ -22,7 +20,7 @@ audio_jitter_buffer_type        fixed
 audio_jitter_buffer_ms  100-200
 
 # Modules
-module_path             /usr/lib/baresip/modules
+module_path             {{MODULE_PATH}}
 module                  g711.so
 module                  opus.so
 module                  auconv.so

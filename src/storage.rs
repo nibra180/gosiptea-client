@@ -209,7 +209,7 @@ impl Store {
         &self.paths
     }
     pub fn ensure_config(&self) -> Result<()> {
-        ensure_config(&self.paths.dir)
+        ensure_config(&self.paths.dir, || Ok(ConfigDefaults::default())).map(drop)
     }
 
     pub fn load_account(&self) -> Result<Account> {
@@ -852,7 +852,67 @@ fn join_lines(lines: &[String]) -> String {
     lines.iter().map(|line| format!("{line}\n")).collect()
 }
 
-pub fn ensure_config(dir: &Path) -> Result<()> {
+/// Paths written into a newly created baresip config.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigDefaults {
+    pub module_dir: PathBuf,
+    pub ca_file: Option<PathBuf>,
+    pub ca_dir: Option<PathBuf>,
+}
+
+impl Default for ConfigDefaults {
+    /// The Arch Linux layout that Sippy wrote before it searched for baresip.
+    fn default() -> Self {
+        Self {
+            module_dir: "/usr/lib/baresip/modules".into(),
+            ca_file: Some("/etc/ssl/certs/ca-certificates.crt".into()),
+            ca_dir: Some("/etc/ssl/certs".into()),
+        }
+    }
+}
+
+fn config_value(path: &Path) -> Result<&str> {
+    let value = path
+        .to_str()
+        .context("bootstrap: config path is not valid UTF-8")?;
+    ensure!(
+        !value.is_empty()
+            && !value
+                .chars()
+                .any(|c| c.is_whitespace() || c.is_control() || c == '#'),
+        "bootstrap: config path must not contain whitespace, control characters or '#': {value:?}"
+    );
+    Ok(value)
+}
+
+pub fn render_default_config(defaults: &ConfigDefaults) -> Result<String> {
+    let mut ca_lines = String::new();
+    for (key, value) in [
+        ("sip_cafile", &defaults.ca_file),
+        ("sip_capath", &defaults.ca_dir),
+    ] {
+        if let Some(value) = value {
+            ca_lines.push_str(&format!("{key:<24}{}\n", config_value(value)?));
+        }
+    }
+    Ok(DEFAULT_CONFIG
+        .replace("{{CA_LINES}}", &ca_lines)
+        .replace("{{MODULE_PATH}}", config_value(&defaults.module_dir)?))
+}
+
+/// Modules the default config loads, in template order.
+pub fn default_modules() -> Vec<String> {
+    parse_config_entries(DEFAULT_CONFIG)
+        .map(|entries| entries.modules.into_iter().map(|(_, name)| name).collect())
+        .unwrap_or_default()
+}
+
+/// Creates the baresip config if it is missing and validates it. `defaults`
+/// only runs for a new config. Returns whether the config was created.
+pub fn ensure_config(
+    dir: &Path,
+    defaults: impl FnOnce() -> Result<ConfigDefaults>,
+) -> Result<bool> {
     ensure!(
         !dir.as_os_str().is_empty(),
         "bootstrap: empty configuration directory"
@@ -866,11 +926,13 @@ pub fn ensure_config(dir: &Path) -> Result<()> {
                 info.is_file() && !info.file_type().is_symlink(),
                 "bootstrap: refusing non-regular config"
             );
-            return validate_config(&path);
+            validate_config(&path)?;
+            return Ok(false);
         }
         Err(e) if e.kind() == io::ErrorKind::NotFound => (),
         Err(e) => return Err(e).context("bootstrap: inspect baresip config"),
     }
+    let text = render_default_config(&defaults()?)?;
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -878,7 +940,7 @@ pub fn ensure_config(dir: &Path) -> Result<()> {
         .open(&path)
         .context("bootstrap: create baresip config")?;
     let write_result = (|| -> Result<()> {
-        file.write_all(DEFAULT_CONFIG.as_bytes())?;
+        file.write_all(text.as_bytes())?;
         file.sync_all()?;
         Ok(())
     })();
@@ -888,15 +950,23 @@ pub fn ensure_config(dir: &Path) -> Result<()> {
         return Err(e).context("bootstrap: write baresip config");
     }
     File::open(&dir)?.sync_all()?;
-    validate_config(&path)
+    validate_config(&path)?;
+    Ok(true)
 }
 
-pub fn validate_config(path: &Path) -> Result<()> {
-    let data = read_regular_file(path, false).context("bootstrap: read baresip config")?;
-    let text = String::from_utf8_lossy(&data);
-    let mut dbus = false;
-    let mut session = false;
-    for line in text.split('\n') {
+/// Settings of a baresip config that point into the file system. Line
+/// numbers start at 1. baresip uses the first `module_path` and `sip_cafile`.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ConfigEntries {
+    pub module_path: Option<(usize, String)>,
+    pub modules: Vec<(usize, String)>,
+    pub ca_file: Option<(usize, String)>,
+    pub ca_dir: Option<(usize, String)>,
+}
+
+fn config_lines(text: &str) -> Result<Vec<(usize, Vec<&str>)>> {
+    let mut lines = Vec::new();
+    for (index, line) in text.split('\n').enumerate() {
         ensure!(line.len() < 65536, "bootstrap: config line is too long");
         let fields: Vec<_> = line
             .split('#')
@@ -904,9 +974,39 @@ pub fn validate_config(path: &Path) -> Result<()> {
             .unwrap_or("")
             .split_whitespace()
             .collect();
-        if fields.len() < 2 {
-            continue;
+        if fields.len() >= 2 {
+            lines.push((index + 1, fields));
         }
+    }
+    Ok(lines)
+}
+
+pub fn parse_config_entries(text: &str) -> Result<ConfigEntries> {
+    let mut entries = ConfigEntries::default();
+    for (line, fields) in config_lines(text)? {
+        let value = || Some((line, fields[1].to_owned()));
+        match fields[0] {
+            "module" | "module_app" => entries.modules.push((line, fields[1].to_owned())),
+            "module_path" if entries.module_path.is_none() => entries.module_path = value(),
+            "sip_cafile" if entries.ca_file.is_none() => entries.ca_file = value(),
+            "sip_capath" if entries.ca_dir.is_none() => entries.ca_dir = value(),
+            _ => (),
+        }
+    }
+    Ok(entries)
+}
+
+pub fn read_config_entries(path: &Path) -> Result<ConfigEntries> {
+    let data = read_regular_file(path, false).context("bootstrap: read baresip config")?;
+    parse_config_entries(&String::from_utf8_lossy(&data))
+}
+
+pub fn validate_config(path: &Path) -> Result<()> {
+    let data = read_regular_file(path, false).context("bootstrap: read baresip config")?;
+    let text = String::from_utf8_lossy(&data);
+    let mut dbus = false;
+    let mut session = false;
+    for (_, fields) in config_lines(&text)? {
         match fields[0] {
             "module" | "module_app" => {
                 let module = Path::new(fields[1])
@@ -1884,13 +1984,97 @@ mod tests {
         store.ensure_config().unwrap();
         assert_eq!(mode(&store.paths.dir), 0o700);
         assert_eq!(mode(&store.paths.config), 0o600);
-        assert_eq!(text(&store.paths.config), DEFAULT_CONFIG);
+        assert_eq!(
+            text(&store.paths.config),
+            render_default_config(&ConfigDefaults::default()).unwrap()
+        );
         let custom = "# custom\nmodule_app ctrl_dbus.so\nctrl_dbus_use session\n";
         fixture(&store, &store.paths.config, custom, 0o640);
-        store.ensure_config().unwrap();
+        let created = ensure_config(&store.paths.dir, || panic!("defaults for existing config"));
+        assert!(!created.unwrap());
         assert_eq!(text(&store.paths.config), custom);
         assert_eq!(mode(&store.paths.config), 0o640);
-        assert!(ensure_config(Path::new("")).is_err());
+        assert!(ensure_config(Path::new(""), || Ok(ConfigDefaults::default())).is_err());
+    }
+
+    #[test]
+    fn bootstrap_writes_found_paths_and_creates_nothing_when_the_search_fails() {
+        let (_temp, store) = store();
+        let error = ensure_config(&store.paths.dir, || bail!("no modules")).unwrap_err();
+        assert_eq!(error.to_string(), "no modules");
+        assert!(!store.paths.config.exists());
+        let defaults = ConfigDefaults {
+            module_dir: "/usr/lib64/baresip/modules".into(),
+            ca_file: Some("/etc/pki/tls/certs/ca-bundle.crt".into()),
+            ca_dir: None,
+        };
+        assert!(ensure_config(&store.paths.dir, || Ok(defaults.clone())).unwrap());
+        let config = text(&store.paths.config);
+        assert!(config.contains("\nmodule_path             /usr/lib64/baresip/modules\n"));
+        assert!(config.contains(
+            "\n# SIP\nsip_cafile              /etc/pki/tls/certs/ca-bundle.crt\nsip_verify_server       yes\n"
+        ));
+        assert!(!config.contains("sip_capath") && !config.contains("{{"));
+        let entries = parse_config_entries(&config).unwrap();
+        assert_eq!(
+            entries.module_path,
+            Some((24, "/usr/lib64/baresip/modules".into()))
+        );
+        assert_eq!(entries.modules.len(), default_modules().len());
+    }
+
+    #[test]
+    fn default_config_matches_the_previous_arch_template() {
+        let config = render_default_config(&ConfigDefaults::default()).unwrap();
+        assert!(config.contains(
+            "\n# SIP\nsip_cafile              /etc/ssl/certs/ca-certificates.crt\nsip_capath              /etc/ssl/certs\nsip_verify_server       yes\n"
+        ));
+        assert!(config.contains(
+            "\nmodule_path             /usr/lib/baresip/modules\nmodule                  g711.so\n"
+        ));
+        let without_ca = ConfigDefaults {
+            ca_file: None,
+            ca_dir: None,
+            ..ConfigDefaults::default()
+        };
+        let config = render_default_config(&without_ca).unwrap();
+        assert!(config.contains("\n# SIP\nsip_verify_server       yes\n"));
+        assert_eq!(
+            default_modules(),
+            [
+                "g711.so",
+                "opus.so",
+                "auconv.so",
+                "auresamp.so",
+                "pipewire.so",
+                "webrtc_aec.so",
+                "srtp.so",
+                "uuid.so",
+                "stun.so",
+                "account.so",
+                "contact.so",
+                "debug_cmd.so",
+                "menu.so",
+                "netroam.so",
+                "ctrl_dbus.so",
+            ]
+        );
+    }
+
+    #[test]
+    fn default_config_refuses_paths_that_would_inject_lines() {
+        for module_dir in ["/a b", "/a\nmodule_app ctrl_tcp.so", "/a#b", ""] {
+            let defaults = ConfigDefaults {
+                module_dir: module_dir.into(),
+                ..ConfigDefaults::default()
+            };
+            assert!(render_default_config(&defaults).is_err(), "{module_dir:?}");
+        }
+        let defaults = ConfigDefaults {
+            ca_file: Some("/etc/ca\tbundle".into()),
+            ..ConfigDefaults::default()
+        };
+        assert!(render_default_config(&defaults).is_err());
     }
 
     #[test]

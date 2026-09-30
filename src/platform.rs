@@ -1067,8 +1067,26 @@ fn read_available(reader: &mut impl Read, output: &mut Vec<u8>, limit: usize) ->
 }
 
 fn run_command(program: &str, args: &[&str], deadline: Instant, limit: usize) -> Result<String> {
+    let (status, out, err) = capture_command(Path::new(program), args, deadline, limit)?;
+    ensure!(
+        status.success(),
+        "platform: {program} failed: {}",
+        String::from_utf8_lossy(&err).trim()
+    );
+    String::from_utf8(out).with_context(|| format!("platform: invalid UTF-8 from {program}"))
+}
+
+/// Runs `program` to completion and returns its exit status, stdout and stderr,
+/// each capped at `limit` bytes.
+pub(crate) fn capture_command(
+    path: &Path,
+    args: &[&str],
+    deadline: Instant,
+    limit: usize,
+) -> Result<(ExitStatus, Vec<u8>, Vec<u8>)> {
+    let program = path.display();
     ensure!(Instant::now() < deadline, "platform: {program} timed out");
-    let mut command = Command::new(program);
+    let mut command = Command::new(path);
     command
         .args(args)
         .stdin(Stdio::null())
@@ -1089,14 +1107,7 @@ fn run_command(program: &str, args: &[&str], deadline: Instant, limit: usize) ->
         let out_done = read_available(&mut stdout, &mut out, limit)?;
         let err_done = read_available(&mut stderr, &mut err, limit)?;
         if child.exited()? && out_done && err_done {
-            let status = child.reap()?;
-            ensure!(
-                status.success(),
-                "platform: {program} failed: {}",
-                String::from_utf8_lossy(&err).trim()
-            );
-            return String::from_utf8(out)
-                .with_context(|| format!("platform: invalid UTF-8 from {program}"));
+            return Ok((child.reap()?, out, err));
         }
         ensure!(Instant::now() < deadline, "platform: {program} timed out");
         thread::sleep(TICK);
