@@ -4,8 +4,6 @@
 
 Sippy is a SIP softphone for the Linux desktop, written in Rust with GPUI and built for Omarchy on Hyprland. The app starts its own baresip process and controls it over D-Bus.
 
-Repository: [github.com/nibra180/sippy](https://github.com/nibra180/sippy).
-
 ## Showcase
 
 The screenshots show made-up demo data.
