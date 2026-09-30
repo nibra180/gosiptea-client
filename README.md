@@ -1,6 +1,17 @@
-# Sippy
+<h1 align="center">Sippy</h1>
 
-<img src="assets/logo/sippy-logo.png" alt="Sippy logo" width="128" />
+<p align="center">
+  <img src="assets/logo/sippy-logo.png" alt="Sippy logo" width="200" />
+</p>
+
+<p align="center">
+  <img src="assets/sippy/sippy-tilted.png" alt="Sippy, tilted" width="96" title="Ready" />
+  <img src="assets/sippy/sippy-on-call.png" alt="Sippy in a call" width="96" title="On a call" />
+  <img src="assets/sippy/sippy-dnd.png" alt="Sippy in do-not-disturb mode" width="96" title="Do not disturb" />
+  <img src="assets/sippy/sippy-not-registered.png" alt="Sippy without SIP registration" width="96" title="Not registered" />
+</p>
+
+<p align="center"><sub>ready · on a call · do not disturb · not registered</sub></p>
 
 Sippy is a SIP softphone for the Linux desktop, written in Rust with GPUI and built for Omarchy on Hyprland. The app starts its own baresip process and controls it over D-Bus.
 
