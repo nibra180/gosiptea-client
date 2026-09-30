@@ -2,7 +2,7 @@
 
 <img src="assets/logo/sippy-logo.png" alt="Sippy logo" width="128" />
 
-Sippy is a SIP softphone for the Linux desktop. This project ports the original GoSipTea TUI to Rust and GPUI, built for Omarchy on Hyprland. The app starts its own baresip process and controls it over D-Bus. It needs neither the Go source tree nor the Go binary.
+Sippy is a SIP softphone for the Linux desktop, written in Rust with GPUI and built for Omarchy on Hyprland. The app starts its own baresip process and controls it over D-Bus.
 
 Repository: [github.com/nibra180/sippy](https://github.com/nibra180/sippy).
 
@@ -37,7 +37,7 @@ make build
 ./target/release/sippy
 ```
 
-`make install` builds the release binary and installs it with a desktop entry and app icon under `~/.local`. `PREFIX` changes that path. `make update` does the same. A running instance keeps running and picks up the new build on its next start. An existing Go installation stays in place.
+`make install` builds the release binary and installs it with a desktop entry and app icon under `~/.local`. `PREFIX` changes that path. `make update` does the same. A running instance keeps running and picks up the new build on its next start.
 
 ### Upgrade from gosiptea-client
 
@@ -60,7 +60,7 @@ dbus-run-session -- ./target/release/sippy --config-dir "$test_dir"
 
 Don't enter real credentials there. baresip may create sample contacts in it. Delete the directory yourself afterwards.
 
-The original's options work with one or two leading dashes:
+The following options accept one or two leading dashes:
 
 - `--config-dir PATH`
 - `--baresip PATH`
@@ -90,13 +90,13 @@ In text fields, Tab moves to the next field and Esc leaves the field. Enter dial
 
 ### Audio and volume
 
-Settings lists the devices for Output, Input and Ringtone. A click selects a device. As in the original, a separate ringtone device takes effect only after a restart.
+Settings lists the devices for Output, Input and Ringtone. A click selects a device. A separate ringtone device takes effect only after a restart.
 
-The volume control is the only feature the original lacks. A click sets the system volume of the selected output device in 5 % steps, with or without a call. With "System default" it controls the current default device. Changes made with the system control show up within about a second. The volume applies to the whole device, so it also changes other programs on it. With "Same as output" it also affects the ringtone. It doesn't control a separate ringtone device or the microphone.
+A click on the volume control sets the system volume of the selected output device in 5 % steps, with or without a call. With "System default" it controls the current default device. Changes made with the system control show up within about a second. The volume applies to the whole device, so it also changes other programs on it. With "Same as output" it also affects the ringtone. It doesn't control a separate ringtone device or the microphone.
 
 ### Limits
 
-The app handles one account and one call at a time. The history keeps at most 200 calls in `gosiptea-call-history.json`. There are no global shortcuts, no notification actions and none of the TUI's letter shortcuts.
+The app handles one account and one call at a time. The history keeps at most 200 calls in `gosiptea-call-history.json`. There are no global shortcuts or notification actions.
 
 ## Architecture
 

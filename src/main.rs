@@ -59,7 +59,7 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    // Accept the original Go flag spelling as well as Rust's double-dash spelling.
+    // Accept both single- and double-dash option spellings.
     let args = std::env::args_os().map(|arg| {
         let text = arg.to_string_lossy();
         let name = text.split('=').next().unwrap_or_default();

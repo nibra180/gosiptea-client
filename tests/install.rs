@@ -43,7 +43,7 @@ fn install_replaces_the_old_launcher_without_touching_user_data() {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, "old client").unwrap();
     }
-    executable(&prefix.join("bin/gosiptea"), "original Go installation");
+    executable(&prefix.join("bin/gosiptea"), "unrelated installation");
     let config = home.join(".baresip");
     fs::create_dir_all(&config).unwrap();
     for name in [

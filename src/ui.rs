@@ -791,7 +791,7 @@ impl Workspace {
                         .items_center()
                         .px_3()
                         .py_4()
-                        .child(img("logo/sippy-logo.png").size(px(32.))),
+                        .child(img("logo/sippy-logo.png").size(px(64.))),
                 );
         }
         navigation
