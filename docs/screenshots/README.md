@@ -2,8 +2,9 @@
 
 14 native captures of Sippy with made-up data, the English UI and the dark theme.
 
-- Desktop: 1100 × 760 pixel window, 1180 × 840 pixel screenshot, navigation in the sidebar.
-- Compact: 600 × 800 pixel window, 680 × 880 pixel screenshot, navigation at the top.
+- Desktop: 1100 × 760 pixel window, 1180 × 840 pixel screenshot, status mascot and navigation in the sidebar.
+- Compact: 600 × 800 pixel window, 680 × 880 pixel screenshot, status mascot in the header with navigation below.
+- The mascot is pink when ready and green for the incoming demo call. Live sessions also use purple for do not disturb and red without registration.
 - A 40 pixel margin on every side shows the real window border and part of the wallpaper.
 - Account, contacts, devices, registration and calls are simulated. The demo backend starts no baresip and reads no personal account data.
 

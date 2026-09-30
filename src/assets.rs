@@ -41,10 +41,22 @@ const ICONS: [(&str, &[u8]); 10] = [
     ),
 ];
 
-const LOGOS: [(&str, &[u8]); 1] = [(
-    "logo/sippy-logo.png",
-    include_bytes!("../assets/logo/sippy-logo.png"),
-)];
+const LOGOS: [(&str, &[u8]); 5] = [
+    ("sippy/logo.svg", include_bytes!("../assets/sippy/logo.svg")),
+    (
+        "sippy/ready.svg",
+        include_bytes!("../assets/sippy/ready.svg"),
+    ),
+    (
+        "sippy/on-call.svg",
+        include_bytes!("../assets/sippy/on-call.svg"),
+    ),
+    ("sippy/dnd.svg", include_bytes!("../assets/sippy/dnd.svg")),
+    (
+        "sippy/not-registered.svg",
+        include_bytes!("../assets/sippy/not-registered.svg"),
+    ),
+];
 
 /// Images are compiled in, so the binary needs no files at runtime.
 pub struct Assets;
@@ -73,15 +85,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn app_logo_loads_as_png() {
-        let name = "logo/sippy-logo.png";
-        assert_eq!(
-            Assets.list("logo/").unwrap(),
-            vec![SharedString::from(name)]
-        );
-        let bytes = Assets.load(name).unwrap().unwrap();
-        assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"));
-        assert!(Assets.load("logo/gosiptea-icon.svg").unwrap().is_none());
+    fn every_sippy_loads_as_vector_svg() {
+        assert_eq!(Assets.list("sippy/").unwrap().len(), LOGOS.len());
+        for (name, _) in LOGOS {
+            let bytes = Assets.load(name).unwrap().unwrap();
+            let svg = std::str::from_utf8(&bytes).unwrap();
+            assert!(svg.starts_with("<svg"), "{name}");
+            assert!(svg.contains("viewBox="), "{name}");
+            assert!(svg.contains("<path"), "{name}");
+            assert!(!svg.contains("<image"), "{name}");
+            assert!(!svg.contains("data:image"), "{name}");
+        }
+        assert!(Assets.load("sippy/missing.svg").unwrap().is_none());
     }
 
     #[test]

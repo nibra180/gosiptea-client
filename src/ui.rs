@@ -770,6 +770,29 @@ impl Workspace {
         }
     }
 
+    fn sippy_figure(&self, size: f32) -> AnyElement {
+        img(sippy_asset(&self.snapshot.state, self.snapshot.running))
+            .debug_selector(|| "sippy-figure".into())
+            .size(px(size))
+            .flex_shrink_0()
+            .into_any_element()
+    }
+
+    fn compact_header(&self, cx: &Context<Self>) -> AnyElement {
+        div()
+            .debug_selector(|| "sippy-compact-header".into())
+            .flex()
+            .flex_shrink_0()
+            .items_center()
+            .gap_2()
+            .px_4()
+            .py_1()
+            .bg(rgb(palette(cx).panel))
+            .child(self.sippy_figure(48.))
+            .child(div().debug_selector(|| "sippy-name".into()).child("Sippy"))
+            .into_any_element()
+    }
+
     fn navigation(&self, compact: bool, cx: &Context<Self>) -> AnyElement {
         let mut navigation = div()
             .flex()
@@ -791,7 +814,7 @@ impl Workspace {
                         .items_center()
                         .px_3()
                         .py_4()
-                        .child(img("logo/sippy-logo.png").size(px(64.))),
+                        .child(self.sippy_figure(64.)),
                 );
         }
         navigation
@@ -1838,7 +1861,10 @@ impl Render for Workspace {
             .text_size(px(14.))
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_down))
-            .when(compact, |root| root.child(self.navigation(true, cx)))
+            .when(compact, |root| {
+                root.child(self.compact_header(cx))
+                    .child(self.navigation(true, cx))
+            })
             .child(
                 div()
                     .flex()
@@ -2180,6 +2206,18 @@ fn display_peer(cx: &App, peer: &str) -> String {
         tr(cx, "Unknown peer").into()
     } else {
         domain::clamp_text(peer, domain::MAX_PEER_DISPLAY_LENGTH)
+    }
+}
+fn sippy_asset(state: &domain::State, running: bool) -> &'static str {
+    if state.call_state != CallState::Idle {
+        "sippy/on-call.svg"
+    } else if !running || !(state.registered || state.registration == RegistrationState::Registered)
+    {
+        "sippy/not-registered.svg"
+    } else if state.dnd {
+        "sippy/dnd.svg"
+    } else {
+        "sippy/ready.svg"
     }
 }
 fn short_registration(snapshot: &Snapshot) -> &'static str {

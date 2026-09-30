@@ -226,6 +226,121 @@ fn show(cx: &mut VisualTestContext, view: View) {
     );
 }
 
+#[test]
+fn sippy_calls_take_priority_over_offline_and_dnd() {
+    for call_state in [CallState::Incoming, CallState::Outgoing, CallState::Active] {
+        for running in [false, true] {
+            for registered in [false, true] {
+                for dnd in [false, true] {
+                    let state = domain::State {
+                        call_state,
+                        registered,
+                        dnd,
+                        ..domain::State::default()
+                    };
+                    assert_eq!(sippy_asset(&state, running), "sippy/on-call.svg");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn sippy_offline_takes_priority_over_dnd() {
+    for registration in [
+        RegistrationState::Unknown,
+        RegistrationState::Registering,
+        RegistrationState::Failed,
+        RegistrationState::Unregistered,
+    ] {
+        for dnd in [false, true] {
+            let state = domain::State {
+                registration,
+                dnd,
+                ..domain::State::default()
+            };
+            assert_eq!(sippy_asset(&state, true), "sippy/not-registered.svg");
+        }
+    }
+    for registered in [false, true] {
+        for dnd in [false, true] {
+            let state = domain::State {
+                registered,
+                registration: RegistrationState::Registered,
+                dnd,
+                ..domain::State::default()
+            };
+            assert_eq!(sippy_asset(&state, false), "sippy/not-registered.svg");
+        }
+    }
+}
+
+#[test]
+fn sippy_accepts_either_registration_signal_for_ready_and_dnd() {
+    for (registered, registration) in [
+        (true, RegistrationState::Unknown),
+        (true, RegistrationState::Registering),
+        (true, RegistrationState::Registered),
+        (true, RegistrationState::Failed),
+        (true, RegistrationState::Unregistered),
+        (false, RegistrationState::Registered),
+    ] {
+        for (dnd, asset) in [(false, "sippy/ready.svg"), (true, "sippy/dnd.svg")] {
+            let state = domain::State {
+                registered,
+                registration,
+                dnd,
+                ..domain::State::default()
+            };
+            assert_eq!(sippy_asset(&state, true), asset);
+        }
+    }
+}
+
+#[gpui::test]
+fn sippy_figure_is_visible_in_the_desktop_sidebar(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let (_, cx) = fixture.open(cx);
+    cx.simulate_resize(gpui::size(px(980.), px(640.)));
+    cx.run_until_parked();
+    let figure = cx.debug_bounds("sippy-figure").unwrap();
+    let navigation = cx.debug_bounds("view-0").unwrap();
+    assert_eq!(figure.size, gpui::size(px(64.), px(64.)));
+    assert!(figure.left() >= px(0.) && figure.right() <= px(190.));
+    assert!(figure.top() >= px(0.) && figure.bottom() <= navigation.top());
+    assert!(cx.debug_bounds("sippy-compact-header").is_none());
+}
+
+#[gpui::test]
+fn sippy_compact_header_sits_above_the_wrapping_navigation(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let (_, cx) = fixture.open(cx);
+    cx.simulate_resize(gpui::size(px(540.), px(440.)));
+    cx.run_until_parked();
+    let header = cx.debug_bounds("sippy-compact-header").unwrap();
+    let figure = cx.debug_bounds("sippy-figure").unwrap();
+    assert_eq!(figure.size, gpui::size(px(48.), px(48.)));
+    assert_eq!(header.size.height, px(56.));
+    assert!(figure.left() >= header.left() && figure.right() <= header.right());
+    assert!(figure.top() >= header.top() && figure.bottom() <= header.bottom());
+    let name = cx.debug_bounds("sippy-name").unwrap();
+    assert!(name.left() >= figure.right() && name.right() <= header.right());
+    assert!(name.top() >= header.top() && name.bottom() <= header.bottom());
+    for selector in [
+        "view-0",
+        "view-1",
+        "view-2",
+        "view-3",
+        "view-4",
+        "view-help",
+    ] {
+        let bounds = cx.debug_bounds(selector).unwrap();
+        assert!(bounds.top() >= header.bottom());
+        assert!(bounds.left() >= px(0.) && bounds.right() <= px(540.));
+        assert!(bounds.bottom() <= px(440.));
+    }
+}
+
 #[gpui::test]
 fn clicks_switch_views_and_typing_on_the_phone_view_goes_to_the_dial_field(
     cx: &mut TestAppContext,

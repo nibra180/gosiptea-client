@@ -1,14 +1,14 @@
 <h1 align="center">Sippy</h1>
 
 <p align="center">
-  <img src="assets/logo/sippy-logo.png" alt="Sippy logo" width="200" />
+  <img src="assets/sippy/logo.svg" alt="Sippy logo" width="200" />
 </p>
 
 <p align="center">
-  <img src="assets/sippy/sippy-tilted.png" alt="Sippy, tilted" width="96" title="Ready" />
-  <img src="assets/sippy/sippy-on-call.png" alt="Sippy in a call" width="96" title="On a call" />
-  <img src="assets/sippy/sippy-dnd.png" alt="Sippy in do-not-disturb mode" width="96" title="Do not disturb" />
-  <img src="assets/sippy/sippy-not-registered.png" alt="Sippy without SIP registration" width="96" title="Not registered" />
+  <img src="assets/sippy/ready.svg" alt="Sippy, tilted" width="96" title="Ready" />
+  <img src="assets/sippy/on-call.svg" alt="Sippy in a call" width="96" title="On a call" />
+  <img src="assets/sippy/dnd.svg" alt="Sippy in do-not-disturb mode" width="96" title="Do not disturb" />
+  <img src="assets/sippy/not-registered.svg" alt="Sippy without SIP registration" width="96" title="Not registered" />
 </p>
 
 <p align="center"><sub>ready · on a call · do not disturb · not registered</sub></p>
@@ -81,7 +81,7 @@ Without `--baresip-log`, baresip logs nothing. Logs and SIP traces can contain p
 
 ## Usage
 
-Wide windows show the navigation as a sidebar, narrow ones at the top. The question mark icon at its end, or `F1`, opens a list of all keyboard shortcuts. `Ctrl+1` to `Ctrl+5` open Phone, Contacts, Account, History and Settings. `Ctrl+Tab` and `Ctrl+Shift+Tab` go forward and back. `Ctrl+F` jumps to the contact search. These shortcuts also work in text fields. Everything else uses the mouse. Only the Phone view takes keyboard input without a click first.
+Wide windows show the navigation as a sidebar, narrow ones at the top. The Sippy mascot appears in the sidebar or in a compact header and reflects the current status: green for a call, red without registration, purple for do not disturb, and pink when ready. Calls take priority, followed by missing registration and do not disturb. Text status indicators remain available. The question mark icon at its end, or `F1`, opens a list of all keyboard shortcuts. `Ctrl+1` to `Ctrl+5` open Phone, Contacts, Account, History and Settings. `Ctrl+Tab` and `Ctrl+Shift+Tab` go forward and back. `Ctrl+F` jumps to the contact search. These shortcuts also work in text fields. Everything else uses the mouse. Only the Phone view takes keyboard input without a click first.
 
 - Phone: The dial pad follows the Android phone app. Typed characters go to the dial field, even after Esc. The green button dials, DND sits to its left, and backspace to its right deletes the last character. The volume control sits below.
 - Call screen: Every incoming or outgoing call switches the app to Phone. Incoming calls pause MPRIS players, show a desktop notification and raise the window. They show "Decline" on the left and "Answer" on the right. During a call there are Mute, Keypad, Hold, DND, hang up and the volume control. The open keypad sends clicked and typed digits, `*` and `#` as DTMF right away. Mute and Keypad are disabled while the call is on hold. In the other views a banner leads back to the call.
@@ -118,7 +118,16 @@ The app handles one account and one call at a time. The history keeps at most 20
 - `src/input.rs`: length-limited Unicode input with IME, selection, clipboard and password masking.
 - `src/assets.rs`: UI icons and the app logo embedded in the binary.
 
-The app and this README use `assets/logo/sippy-logo.png`. The desktop launcher uses its 512 × 512 derivative, `assets/logo/sippy-icon.png`, installed as `share/icons/hicolor/512x512/apps/sippy.png` under the installation prefix. When replacing the logo, regenerate the desktop icon and the [demo screenshots](docs/screenshots/README.md).
+The app and this README use the vector artwork in `assets/sippy`. The original PNGs remain available; tracing simplifies subtle texture and antialiasing. The desktop launcher uses `assets/logo/sippy-icon.png`, installed as `share/icons/hicolor/512x512/apps/sippy.png` under the installation prefix.
+
+To regenerate all five path-only SVGs, install [VTracer](https://github.com/visioncortex/vtracer) 0.6.5 and Python Pillow, then run:
+
+```sh
+cargo install vtracer --version 0.6.5 --locked
+python3 scripts/trace-sippies.py
+```
+
+The tracing tools are only needed to regenerate the artwork, not to build or run Sippy. When replacing artwork, also refresh the [demo screenshots](docs/screenshots/README.md).
 
 ## Checks
 
