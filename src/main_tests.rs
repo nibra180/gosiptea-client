@@ -54,7 +54,9 @@ impl Backend for FakeBackend {
 #[test]
 fn termination_signal_stops_sip_without_a_running_gui_event_loop() {
     let directory = tempfile::tempdir().unwrap();
-    storage::ensure_config(directory.path()).unwrap();
+    storage::Store::new(directory.path())
+        .ensure_config()
+        .unwrap();
     let calls = Arc::new(Mutex::new(Calls::default()));
     let backend_calls = calls.clone();
     let session = Arc::new(
@@ -80,7 +82,9 @@ fn termination_signal_stops_sip_without_a_running_gui_event_loop() {
 #[gpui::test]
 fn panic_after_workspace_creation_stops_session_even_if_gpui_keeps_an_arc(cx: &mut TestAppContext) {
     let directory = tempfile::tempdir().unwrap();
-    storage::ensure_config(directory.path()).unwrap();
+    storage::Store::new(directory.path())
+        .ensure_config()
+        .unwrap();
     let calls = Arc::new(Mutex::new(Calls::default()));
     let backend_calls = calls.clone();
     let session = Arc::new(

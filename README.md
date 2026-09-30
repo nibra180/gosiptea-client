@@ -24,11 +24,17 @@ In narrow windows the navigation moves to the top:
 
 - Rust 1.88 or newer and Cargo
 - a graphics driver with Vulkan support
-- baresip with `ctrl_dbus`, PipeWire and `wpctl`
+- baresip 3.19.0 or newer with the `ctrl_dbus` and `pipewire` modules, plus PipeWire and `wpctl`
 - `notify-send` and a session D-Bus
 - for GPUI, the development libraries for Wayland, X11 and xkbcommon
 
 `Cargo.lock` pins the tested dependencies, including GPUI 0.2.2.
+
+Sippy was tested with baresip 4.6.0 on Arch Linux. Older versions lack the `hangup` arguments Sippy uses to decline calls, so Sippy refuses to start with them. Debian and Ubuntu ship baresip 1.x, so build baresip from source there. Fedora splits the modules into separate packages:
+
+```sh
+sudo dnf install baresip baresip-ctrl_dbus baresip-pipewire baresip-opus
+```
 
 ## Build and install
 
@@ -51,6 +57,8 @@ For development, `cargo build --locked` builds into `target/debug`. That build i
 
 The app reads its configuration from `~/.baresip`. If another process already owns `com.github.Baresip` on the D-Bus, it does not start. It never stops or changes a baresip service it did not start.
 
+Before it starts baresip, Sippy runs `baresip -h` to read the version. On the first start it writes a new `config` into the configuration directory. The module directory comes from the location of the baresip binary, for example `/usr/lib/baresip/modules` on Arch or `/usr/lib64/baresip/modules` on Fedora, and the CA bundle from the usual paths of Arch, Debian, Fedora and openSUSE. Sippy never changes an existing `config`. If its `module_path` lacks a module, Sippy stops with the line number and the directory where it found the modules.
+
 To try it without a real account, use a temporary directory and a private D-Bus:
 
 ```sh
@@ -64,6 +72,7 @@ The following options accept one or two leading dashes:
 
 - `--config-dir PATH`
 - `--baresip PATH`
+- `--baresip-modules PATH`, the baresip module directory for a new `config` if Sippy can't find it
 - `--country-code CODE`, default `49`
 - `--baresip-log PATH`
 - `--sip-trace`, only together with `--baresip-log`
