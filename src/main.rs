@@ -11,7 +11,10 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
-use gosiptea_client::{
+use gpui::{
+    App, AppContext, Application, Bounds, TitlebarOptions, WindowBounds, WindowOptions, px, size,
+};
+use sippy::{
     assets::Assets,
     input,
     session::{Config, SessionHandle, Snapshot},
@@ -19,12 +22,9 @@ use gosiptea_client::{
     storage,
     ui::Workspace,
 };
-use gpui::{
-    App, AppContext, Application, Bounds, TitlebarOptions, WindowBounds, WindowOptions, px, size,
-};
 
 #[derive(Parser)]
-#[command(about = "GoSipTea SIP softphone")]
+#[command(about = "Sippy SIP softphone")]
 struct Options {
     #[arg(long, help = "baresip configuration directory, defaults to ~/.baresip")]
     config_dir: Option<PathBuf>,
@@ -53,7 +53,7 @@ struct Options {
 fn main() {
     env_logger::init();
     if let Err(error) = run() {
-        eprintln!("gosiptea-client: {error:#}");
+        eprintln!("sippy: {error:#}");
         std::process::exit(1);
     }
 }
@@ -121,15 +121,15 @@ fn run() -> Result<()> {
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     titlebar: Some(TitlebarOptions {
-                        title: Some("GoSipTea".into()),
+                        title: Some("Sippy".into()),
                         ..Default::default()
                     }),
-                    app_id: Some("gosiptea-client".into()),
+                    app_id: Some("sippy".into()),
                     window_min_size: Some(size(px(540.), px(440.))),
                     ..Default::default()
                 },
                 |window, cx| {
-                    window.set_window_title("GoSipTea");
+                    window.set_window_title("Sippy");
                     cx.new(|cx| {
                         let mut workspace = Workspace::new(ui_session, interrupted, window, cx);
                         workspace.load_settings(settings_store, cx);
@@ -207,7 +207,7 @@ fn run_guarded(
     // GPUI may retain entities on unwind, so cleanup cannot depend on the last Arc dropping.
     let stopped = match Arc::try_unwrap(session) {
         Ok(mut session) => session.shutdown(),
-        Err(session) => session.dispatch_wait(gosiptea_client::session::Action::Quit),
+        Err(session) => session.dispatch_wait(sippy::session::Action::Quit),
     };
     if let Err(panic) = outcome {
         resume_unwind(panic);

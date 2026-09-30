@@ -3,7 +3,10 @@ use std::sync::{Arc, atomic::AtomicBool};
 
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
-use gosiptea_client::{
+use gpui::{
+    App, AppContext, Application, Bounds, TitlebarOptions, WindowBounds, WindowOptions, px, size,
+};
+use sippy::{
     assets::Assets,
     domain::{CallDirection, CallOutcome, HistoryEntry},
     input,
@@ -12,9 +15,6 @@ use gosiptea_client::{
     settings::{Language, OmarchyTheme, Preferences, Theme},
     storage::{AccountCredentials, Store, StoredContact},
     ui::Workspace,
-};
-use gpui::{
-    App, AppContext, Application, Bounds, TitlebarOptions, WindowBounds, WindowOptions, px, size,
 };
 
 struct DemoBackend {
@@ -168,10 +168,10 @@ fn main() -> Result<()> {
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     titlebar: Some(TitlebarOptions {
-                        title: Some("GoSipTea Demo".into()),
+                        title: Some("Sippy Demo".into()),
                         ..Default::default()
                     }),
-                    app_id: Some("gosiptea-demo".into()),
+                    app_id: Some("sippy-demo".into()),
                     window_min_size: Some(size(px(540.), px(440.))),
                     ..Default::default()
                 },

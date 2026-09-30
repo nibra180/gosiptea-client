@@ -21,7 +21,7 @@ use crate::settings::palette;
 use editor::{Editor, byte_to_utf16, range_from_utf16, range_to_utf16};
 
 actions!(
-    gosiptea_input,
+    sippy_input,
     [
         Backspace,
         Delete,

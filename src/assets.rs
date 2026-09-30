@@ -42,8 +42,8 @@ const ICONS: [(&str, &[u8]); 10] = [
 ];
 
 const LOGOS: [(&str, &[u8]); 1] = [(
-    "logo/gosiptea-icon.svg",
-    include_bytes!("../assets/logo/gosiptea-icon.svg"),
+    "logo/sippy-logo.png",
+    include_bytes!("../assets/logo/sippy-logo.png"),
 )];
 
 /// Images are compiled in, so the binary needs no files at runtime.
@@ -71,6 +71,18 @@ impl AssetSource for Assets {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn app_logo_loads_as_png() {
+        let name = "logo/sippy-logo.png";
+        assert_eq!(
+            Assets.list("logo/").unwrap(),
+            vec![SharedString::from(name)]
+        );
+        let bytes = Assets.load(name).unwrap().unwrap();
+        assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"));
+        assert!(Assets.load("logo/gosiptea-icon.svg").unwrap().is_none());
+    }
 
     #[test]
     fn every_icon_loads_as_svg() {

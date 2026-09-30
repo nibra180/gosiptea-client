@@ -791,7 +791,7 @@ impl Workspace {
                         .items_center()
                         .px_3()
                         .py_4()
-                        .child(img("logo/gosiptea-icon.svg").size(px(32.))),
+                        .child(img("logo/sippy-logo.png").size(px(32.))),
                 );
         }
         navigation
@@ -1354,7 +1354,7 @@ impl Workspace {
         if self.snapshot.ringtone_restart_required {
             pane = pane.child(div().text_color(rgb(palette(cx).warning)).child(tr(
                 cx,
-                "Restart GoSipTea to ring on the selected ringtone output.",
+                "Restart Sippy to ring on the selected ringtone output.",
             )));
         }
         for (field, title) in ["Output", "Input", "Ringtone"].into_iter().enumerate() {

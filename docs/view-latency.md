@@ -1,5 +1,7 @@
 # Messung des Ansichtswechsels
 
+Historische Messung vor der Umbenennung zu Sippy; damalige Binary-Namen, Messwerte und Logpfade bleiben hier erhalten.
+
 Der ignorierte Test `real_window_view_switch_latency` in `src/ui_render_bench.rs` öffnet ein echtes GPUI-Fenster mit simuliertem Backend und temporären Dateien. Er verwendet kein SIP-Konto und sendet keine Tastatur- oder Mausereignisse an den Desktop.
 
 Nach 25 Aufwärmwechseln misst er 50 Wechsel pro Ansicht. Gemessen wird `change_view` bis zum Ende eines ausdrücklich angeforderten `Window::draw`. Das umfasst CPU-seitig Layout, Prepaint, Paint und den Abschluss der Scene. GPU-Ausgabe, Display-Latenz und die Zeit vom physischen Klick bis zur Eingabeverarbeitung sind nicht enthalten. Der erzwungene Draw umgeht die normale Planung und Invalidierung. Es handelt sich daher nicht um eine vollständige Klick-bis-Bild-Messung.

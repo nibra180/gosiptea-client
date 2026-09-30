@@ -21,8 +21,8 @@ pub const MAX_FILE_SIZE: usize = 1 << 20;
 pub const MAX_CALL_HISTORY_ENTRIES: usize = 200;
 pub const LOCK_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_CONFIG: &str = include_str!("config.tmpl");
-const ACCOUNT_HEADER: &str = "# SIP account managed by GoSipTea.\n# Contains the extension password: 600 permission required.\n# TLS + SRTP by default; unencrypted transport requires an explicit choice.\n# GoSipTea rewrites this file when saving the account.\n";
-const CONTACTS_HEADER: &str = "#\n# SIP contacts managed by GoSipTea.\n# One contact per line: \"Display name\" <sip:user@host>;addr-params\n# See baresip's modules/contact for the addr-params\n# (;presence=, ;access=allow|block, ;audio=, ;video=).\n#\n\n";
+const ACCOUNT_HEADER: &str = "# SIP account managed by Sippy.\n# Contains the extension password: 600 permission required.\n# TLS + SRTP by default; unencrypted transport requires an explicit choice.\n# Sippy rewrites this file when saving the account.\n";
+const CONTACTS_HEADER: &str = "#\n# SIP contacts managed by Sippy.\n# One contact per line: \"Display name\" <sip:user@host>;addr-params\n# See baresip's modules/contact for the addr-params\n# (;presence=, ;access=allow|block, ;audio=, ;video=).\n#\n\n";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorageError {
@@ -160,6 +160,7 @@ impl AudioConfig {
     }
 }
 
+// Keep the GoSipTea data and lock paths compatible with existing installations.
 impl Store {
     pub fn new(dir: impl Into<PathBuf>) -> Self {
         let dir = clean_path(&dir.into());
@@ -942,6 +943,35 @@ mod tests {
         let store = Store::new(temp.path().join("baresip"));
         (temp, store)
     }
+    #[test]
+    fn sippy_reuses_gosiptea_data_and_lock_paths() {
+        let (_temp, store) = store();
+        assert_eq!(store.paths.lock, store.paths.dir.join(".gosiptea.lock"));
+        assert_eq!(
+            store.paths.history,
+            store.paths.dir.join("gosiptea-call-history.json")
+        );
+        fixture(
+            &store,
+            &store.paths.dir.join("gosiptea-settings.json"),
+            r#"{"language":"german","theme":"light"}"#,
+            0o600,
+        );
+        let entry = history_entry();
+        let data = serde_json::to_string(&serde_json::json!({
+            "version": 1,
+            "calls": [entry.clone()]
+        }))
+        .unwrap();
+        fixture(&store, &store.paths.history, &data, 0o600);
+        let preferences = store.load_preferences().unwrap();
+        assert_eq!(preferences.language, crate::settings::Language::German);
+        assert_eq!(preferences.theme, crate::settings::Theme::Light);
+        assert_eq!(store.load_history().unwrap(), vec![entry]);
+        store.save_preferences(&preferences).unwrap();
+        assert!(!store.paths.dir.join("sippy-settings.json").exists());
+    }
+
     fn credentials() -> Credentials {
         Credentials {
             server: "pbx.example.com:5061".into(),

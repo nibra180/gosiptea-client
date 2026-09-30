@@ -1,26 +1,17 @@
 use super::*;
-use gosiptea_client::{
+use gpui::TestAppContext;
+use sippy::{
     platform::{Backend, BackendEvent, Node},
     session::Action,
 };
-use gpui::TestAppContext;
 
 #[test]
 fn trace_requires_log_only_when_enabled() {
-    assert!(
-        !Options::try_parse_from(["gosiptea-client"])
-            .unwrap()
-            .sip_trace
-    );
-    assert!(Options::try_parse_from(["gosiptea-client", "--sip-trace"]).is_err());
-    assert!(Options::try_parse_from(["gosiptea-client", "--sip-trace=false"]).is_ok());
-    let enabled = Options::try_parse_from([
-        "gosiptea-client",
-        "--sip-trace",
-        "--baresip-log",
-        "test.log",
-    ])
-    .unwrap();
+    assert!(!Options::try_parse_from(["sippy"]).unwrap().sip_trace);
+    assert!(Options::try_parse_from(["sippy", "--sip-trace"]).is_err());
+    assert!(Options::try_parse_from(["sippy", "--sip-trace=false"]).is_ok());
+    let enabled =
+        Options::try_parse_from(["sippy", "--sip-trace", "--baresip-log", "test.log"]).unwrap();
     assert!(enabled.sip_trace);
 }
 

@@ -1,6 +1,6 @@
 # Demo screenshots
 
-14 native captures of the app with made-up data, the English UI and the dark theme.
+14 native captures of Sippy with made-up data, the English UI and the dark theme.
 
 - Desktop: 1100 × 760 pixel window, 1180 × 840 pixel screenshot, navigation in the sidebar.
 - Compact: 600 × 800 pixel window, 680 × 880 pixel screenshot, navigation at the top.
@@ -26,4 +26,4 @@ cargo build --locked --example demo_screenshots
 python3 scripts/capture-demo.py
 ```
 
-The script opens a separate demo window on a free workspace and makes only that window opaque. It closes the window after the captures and returns to the previous workspace. The demo uses a temporary configuration directory. Window control goes through Hyprland's Lua dispatchers.
+The script opens a separate `Sippy Demo` window (app ID `sippy-demo`) on a free workspace and makes only that window opaque. It closes the window after the captures and returns to the previous workspace. The demo uses a temporary configuration directory. Window control goes through Hyprland's Lua dispatchers. The script also recreates `docs/demo-screenshots.zip` with the internal folder `sippy-demo/`.

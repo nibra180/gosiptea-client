@@ -301,8 +301,8 @@ pub fn tr<'a>(cx: &App, text: &'a str) -> &'a str {
         "Add" => "Hinzufügen",
         "Dial" => "Anrufen",
         "No matching contacts." => "Keine passenden Kontakte.",
-        "Restart GoSipTea to ring on the selected ringtone output." => {
-            "GoSipTea neu starten, um die gewählte Klingeltonausgabe zu verwenden."
+        "Restart Sippy to ring on the selected ringtone output." => {
+            "Sippy neu starten, um die gewählte Klingeltonausgabe zu verwenden."
         }
         "Output" => "Ausgabe",
         "Input" => "Eingabe",

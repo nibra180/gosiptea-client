@@ -1,14 +1,14 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=GoSipTea
+Name=Sippy
 GenericName=SIP Phone
 Comment=Make and receive SIP calls
-Exec=gosiptea-client
-TryExec=gosiptea-client
-Icon=call-start-symbolic
+Exec=sippy
+TryExec=sippy
+Icon=sippy
 Terminal=false
 Categories=Network;Telephony;
 Keywords=SIP;phone;call;softphone;
 StartupNotify=false
-StartupWMClass=gosiptea-client
+StartupWMClass=sippy

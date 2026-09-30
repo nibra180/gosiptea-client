@@ -1,6 +1,10 @@
-# GoSipTea client
+# Sippy
 
-GoSipTea is a SIP softphone for the Linux desktop. This project ports the GoSipTea terminal app to Rust and GPUI, built for Omarchy on Hyprland. The app starts its own baresip process and controls it over D-Bus. It needs neither the Go source tree nor the Go binary.
+<img src="assets/logo/sippy-logo.png" alt="Sippy logo" width="128" />
+
+Sippy is a SIP softphone for the Linux desktop. This project ports the original GoSipTea TUI to Rust and GPUI, built for Omarchy on Hyprland. The app starts its own baresip process and controls it over D-Bus. It needs neither the Go source tree nor the Go binary.
+
+Repository: [github.com/nibra180/sippy](https://github.com/nibra180/sippy).
 
 ## Showcase
 
@@ -30,10 +34,16 @@ In narrow windows the navigation moves to the top:
 
 ```sh
 make build
-./target/release/gosiptea-client
+./target/release/sippy
 ```
 
-`make install` builds the release binary and installs it with a desktop entry under `~/.local`. `PREFIX` changes that path. `make update` does the same. A running instance keeps running and picks up the new build on its next start. An existing Go installation stays in place.
+`make install` builds the release binary and installs it with a desktop entry and app icon under `~/.local`. `PREFIX` changes that path. `make update` does the same. A running instance keeps running and picks up the new build on its next start. An existing Go installation stays in place.
+
+### Upgrade from gosiptea-client
+
+Use `make update` with the same `PREFIX` as before. After installing Sippy, the install script removes the old `bin/gosiptea-client`, `share/applications/gosiptea-client.desktop` and `share/icons/hicolor/512x512/apps/gosiptea-client.png` under that prefix. Start `sippy` instead of `gosiptea-client`.
+
+The baresip configuration directory (default `~/.baresip`) and the files `gosiptea-settings.json` and `gosiptea-call-history.json` remain unchanged and compatible; no migration is needed. The storage lock `.gosiptea.lock` and D-Bus startup lock `com.github.GoSipTea.OwnedProcess` also keep their names for compatibility.
 
 For development, `cargo build --locked` builds into `target/debug`. That build is not installed.
 
@@ -45,7 +55,7 @@ To try it without a real account, use a temporary directory and a private D-Bus:
 
 ```sh
 test_dir=$(mktemp -d)
-dbus-run-session -- ./target/release/gosiptea-client --config-dir "$test_dir"
+dbus-run-session -- ./target/release/sippy --config-dir "$test_dir"
 ```
 
 Don't enter real credentials there. baresip may create sample contacts in it. Delete the directory yourself afterwards.
@@ -97,7 +107,9 @@ The app handles one account and one call at a time. The history keeps at most 20
 - `src/ui.rs`: GPUI workspace with navigation, content area, status bar and quit dialog.
 - `src/settings.rs`: language, translations and color palettes.
 - `src/input.rs`: length-limited Unicode input with IME, selection, clipboard and password masking.
-- `src/assets.rs`: icons embedded in the binary.
+- `src/assets.rs`: UI icons and the app logo embedded in the binary.
+
+The app and this README use `assets/logo/sippy-logo.png`. The desktop launcher uses its 512 × 512 derivative, `assets/logo/sippy-icon.png`, installed as `share/icons/hicolor/512x512/apps/sippy.png` under the installation prefix. When replacing the logo, regenerate the desktop icon and the [demo screenshots](docs/screenshots/README.md).
 
 ## Checks
 

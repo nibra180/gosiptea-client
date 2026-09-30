@@ -1,10 +1,10 @@
 [package]
-name = "gosiptea-client"
+name = "sippy"
 version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
-description = "GoSipTea softphone port using Rust and GPUI"
+description = "Sippy SIP softphone using Rust and GPUI"
 
 [dependencies]
 anyhow = "1"

@@ -17,6 +17,7 @@ use zbus::blocking::{Connection, MessageIterator, Proxy, connection::Builder};
 use zbus::proxy::MethodFlags;
 
 const SERVICE: &str = "com.github.Baresip";
+// Share the lock with pre-Sippy versions to prevent concurrent baresip startup.
 const STARTUP_LOCK: &str = "com.github.GoSipTea.OwnedProcess";
 const BUS: &str = "org.freedesktop.DBus";
 const BUS_PATH: &str = "/org/freedesktop/DBus";
@@ -229,7 +230,7 @@ impl RealBackend {
         let reply: u32 = bus.call("RequestName", &(STARTUP_LOCK, 4u32))?;
         ensure!(
             reply == 1,
-            "baresip: another GoSipTea instance owns the startup lock"
+            "baresip: another Sippy or GoSipTea instance owns the startup lock"
         );
         let setup = (|| -> Result<_> {
             let occupied: bool = bus.call("NameHasOwner", &(SERVICE,))?;
@@ -557,7 +558,15 @@ impl DesktopEffects for RealDesktopEffects {
         let body = notification_text(body, 4096);
         run_command(
             "notify-send",
-            &["--app-name", "GoSipTea", "--", &summary, &body],
+            &[
+                "--app-name",
+                "Sippy",
+                "--icon",
+                "sippy",
+                "--",
+                &summary,
+                &body,
+            ],
             Instant::now() + Duration::from_secs(3).min(command_timeout(&self.connection)),
             16 * 1024,
         )?;

@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="210" height="210" viewBox="5 -7 210 210">
-  <title>gosiptea</title>
-  <rect x="5" y="-7" width="210" height="210" rx="24" fill="#1a1b26"/>
-  <g transform="translate(0 0)" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
-    <path stroke="#c8ccd8" d="M140 80 H80 C86 100 92 108 91 122 C90 136 82 144 83 156 C84 166 88 170 92 172 C80 172 66 172 58 175 C68 185 152 185 162 175 C154 172 140 172 128 172 C132 170 136 166 137 156 C138 144 130 136 129 122 C128 108 134 100 140 80 C142 66 104 70 103 55 C102 43 105 36 114 34"/>
-    <path stroke="#9ece6a" stroke-width="2.4" d="M114 34 L119.2 32 L124.4 39 L129.6 25 L134.8 48 L140 16 L145.2 46 L150.4 18 L155.6 42 L160.8 23 L166 39 L171.2 31 L176.4 35"/>
-  </g>
-</svg>

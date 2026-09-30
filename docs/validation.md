@@ -1,5 +1,20 @@
 # Prüfprotokoll
 
+## Prüfung der Umbenennung zu Sippy
+
+- `cargo fmt --all -- --check`: erfolgreich.
+- `cargo test --locked --all-targets`: 180 Tests erfolgreich; zwei bewusst ignorierte Tests.
+- `cargo clippy --locked --all-targets -- -D warnings`: erfolgreich.
+- `cargo build --locked --release`: erfolgreich.
+- Release-Starttest unter Hyprland mit privatem D-Bus: Fenster mit Titel `Sippy` und App-ID `sippy`, eigener baresip-Prozess und sauberes Beenden erfolgreich geprüft.
+- Installation mit temporärem `PREFIX`: `sippy --help`, Desktop-Eintrag und Icon geprüft; alte Binary, Desktop-Datei und Icon entfernt. Keine Installation in das Benutzerprofil.
+- Neue Regressionstests prüfen die Weiterverwendung bestehender Einstellungen, Historie und Sperrpfade sowie das Installations-Upgrade einschließlich fehlgeschlagenem Build.
+- Alle 14 Demo-Screenshots und das ZIP mit dem neuen Branding erneut erstellt.
+
+## Frühere Prüfungen
+
+Die folgenden Ergebnisse stammen aus der Zeit vor der Umbenennung zu Sippy.
+
 Geprüft auf dem vorhandenen Omarchy-System mit Rust und Cargo 1.98.1, GPUI 0.2.2 und Hyprland 0.56.2.
 
 ## Automatisierte Prüfungen

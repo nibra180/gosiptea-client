@@ -126,10 +126,10 @@ fn real_window_view_switch_latency() {
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 titlebar: Some(TitlebarOptions {
-                    title: Some("GoSipTea isolated rendering benchmark".into()),
+                    title: Some("Sippy isolated rendering benchmark".into()),
                     ..Default::default()
                 }),
-                app_id: Some("gosiptea-render-bench".into()),
+                app_id: Some("sippy-render-bench".into()),
                 focus: false,
                 ..Default::default()
             },

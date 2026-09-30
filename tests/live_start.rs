@@ -43,7 +43,7 @@ fn real_window_starts_without_an_account_and_shutdown_reaps_owned_baresip() {
     let log = fs::File::create(directory.path().join("startup.log")).unwrap();
     let mut command = Command::new("dbus-run-session");
     command.args(["--", "sh", "-c", "printf '%s' \"$$\" > \"$1\"; printf '%s' \"$DBUS_SESSION_BUS_ADDRESS\" > \"$2\"; exec \"$3\" --config-dir \"$4\"", "sh"])
-        .arg(&pid_file).arg(&bus_file).arg(env!("CARGO_BIN_EXE_gosiptea-client")).arg(&config)
+        .arg(&pid_file).arg(&bus_file).arg(env!("CARGO_BIN_EXE_sippy")).arg(&config)
         .stdin(Stdio::null()).stdout(log.try_clone().unwrap()).stderr(log);
     unsafe {
         command.pre_exec(|| {
@@ -101,8 +101,8 @@ fn real_window_starts_without_an_account_and_shutdown_reaps_owned_baresip() {
                 .find(|client| {
                     client["pid"].as_u64() == Some(u64::from(app_pid))
                         && client["mapped"] == true
-                        && client["class"] == "gosiptea-client"
-                        && client["title"] == "GoSipTea"
+                        && client["class"] == "sippy"
+                        && client["title"] == "Sippy"
                 })
                 .cloned()
         },

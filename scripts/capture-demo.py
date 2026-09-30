@@ -52,7 +52,7 @@ def capture(client, filename):
     dispatch("focuswindow", f"address:{address}")
     time.sleep(0.6)
     active = json.loads(hypr("activewindow", "-j"))
-    assert active["address"] == address and active["class"] == "gosiptea-demo"
+    assert active["address"] == address and active["class"] == "sippy-demo"
     x, y = active["at"]
     width, height = active["size"]
     assert active["workspace"]["id"] == demo_workspace
@@ -84,7 +84,7 @@ try:
             process = subprocess.Popen(args, env=env, stdout=log, stderr=log)
             try:
                 for _ in range(100):
-                    matches = [c for c in clients() if c["pid"] == process.pid and c["class"] == "gosiptea-demo"]
+                    matches = [c for c in clients() if c["pid"] == process.pid and c["class"] == "sippy-demo"]
                     if matches:
                         break
                     assert process.poll() is None, "Demo process exited; inspect capture.log"
@@ -119,7 +119,7 @@ finally:
 
 with ZipFile(ROOT / "docs/demo-screenshots.zip", "w", ZIP_DEFLATED) as archive:
     for path in sorted(OUTPUT.glob("*.png")) + [OUTPUT / "README.md"]:
-        archive.write(path, "gosiptea-demo/" + path.name)
+        archive.write(path, "sippy-demo/" + path.name)
 log = OUTPUT / "capture.log"
 if log.exists() and not log.stat().st_size:
     log.unlink()
