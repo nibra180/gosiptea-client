@@ -128,6 +128,8 @@ make check
 
 `make check` runs the formatter check, the tests and Clippy. The tests use temporary files, simulated SIP events and private D-Buses, never a real SIP account. The GPUI interaction tests run on GPUI's test platform.
 
+GitHub Actions runs the same `make check` on Ubuntu 24.04 with Rust Stable for branch pushes and pull requests. The CI workflow can also be started manually from the Actions tab. It installs the required system libraries and D-Bus and caches Cargo dependencies and build outputs. It does not run the desktop smoke test or make real SIP calls.
+
 `make smoke` opens the release build as a real window on the running Hyprland desktop, with a temporary configuration and a private D-Bus. It checks the baresip owner, the missing SIP account and that the app's own baresip process exits cleanly. `make check` doesn't run it.
 
 A real call through a SIP server to another party remains a manual test.
